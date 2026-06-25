@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dom Gabriel — Rio Verde</title>
+<title>Dom Gabriel — Primavera do Leste</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
 
   :root {
-    --verde:     #1A5C3A;
-    --verde-med: #2E7D52;
-    --verde-cla: #D1FAE5;
-    --verde-acc: #34D399;
+    --verde:     #1E3A5F;
+    --verde-med: #1E40AF;
+    --verde-cla: #DBEAFE;
+    --verde-acc: #60A5FA;
     --vermelho:  #DC2626;
     --verm-cla:  #FEE2E2;
     --amarelo:   #D97706;
@@ -531,7 +531,7 @@
     <span class="nome">Dom Gabriel — Dashboard</span>
   </div>
   <div class="header-right">
-    <span class="badge-loja">📍 Rio Verde</span>
+    <span class="badge-loja">📍 Primavera do Leste</span>
     <span id="ultima-sync">—</span>
     <button class="btn-sync" onclick="carregarDados()">↻ Atualizar</button>
   </div>
@@ -830,9 +830,9 @@
 // ── CONFIG ──────────────────────────────────────────────────
 const SUPABASE_URL = 'https://ksniedeilzwngtsjnvev.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_GdQoxmwNgw54ctCXwP4Ikg_Z1puV2Xy';
-const TABELA       = 'vendas_rio_verde';
-const STORAGE_KEY  = 'dg_rio_verde_dados';
-const STORAGE_TS   = 'dg_rio_verde_ts';
+const TABELA       = 'vendas_primavera';
+const STORAGE_KEY  = 'dg_primavera_dados';
+const STORAGE_TS   = 'dg_primavera_ts';
 
 // ── ESTADO ──────────────────────────────────────────────────
 let dadosBrutos = [];
@@ -1010,7 +1010,7 @@ function renderizar() {
   const positivo = fatRevenda + fatEstoque + fatVD;
   const barItems = [
     { val: fatRevenda, cor: '#2E7D52', label: 'Revenda' },
-    { val: fatEstoque, cor: '#34D399', label: 'Estoque' },
+    { val: fatEstoque, cor: '#60A5FA', label: 'Estoque' },
     { val: fatVD,      cor: '#1E40AF', label: 'VD Comissão' },
     { val: Math.abs(fatDev), cor: '#DC2626', label: 'Devolução' },
   ].filter(i => i.val > 0);
@@ -1070,9 +1070,9 @@ function renderDRE(fat, trib, cmv, dv, mc, fatRevenda=0, fatEstoque=0, fatVD=0, 
     { label: 'EBITDA / LUCRO LÍQUIDO', val: null, cls: 'dre-secao', noFormat: true },
   ];
 
-  const dfAdm = parseBRL(localStorage.getItem('dg_df_adm') || '0');
-  const dfCom = parseBRL(localStorage.getItem('dg_df_com') || '0');
-  const dfOpe = parseBRL(localStorage.getItem('dg_df_ope') || '0');
+  const dfAdm = parseBRL(localStorage.getItem('dg_pv_df_adm') || '0');
+  const dfCom = parseBRL(localStorage.getItem('dg_pv_df_com') || '0');
+  const dfOpe = parseBRL(localStorage.getItem('dg_pv_df_ope') || '0');
   rows[10].val = dfAdm > 0 ? -dfAdm : null;
   rows[11].val = dfCom > 0 ? -dfCom : null;
   rows[12].val = dfOpe > 0 ? -dfOpe : null;
@@ -1160,8 +1160,8 @@ function renderEvolucao(dados) {
     data: {
       labels,
       datasets: [
-        { label: 'Faturamento', data: fatAc, borderColor: '#2E7D52', backgroundColor: 'rgba(46,125,82,.08)', tension: .3, fill: true, pointRadius: 2 },
-        { label: 'MC', data: mcAc, borderColor: '#34D399', backgroundColor: 'rgba(52,211,153,.08)', tension: .3, fill: true, pointRadius: 2 }
+        { label: 'Faturamento', data: fatAc, borderColor: '#1E40AF', backgroundColor: 'rgba(30,64,175,.08)', tension: .3, fill: true, pointRadius: 2 },
+        { label: 'MC', data: mcAc, borderColor: '#60A5FA', backgroundColor: 'rgba(96,165,250,.08)', tension: .3, fill: true, pointRadius: 2 }
       ]
     },
     options: {
@@ -1279,7 +1279,7 @@ function renderEscala(dados) {
   );
 
   const faixas = [
-    { label: '> 15%',    min: 0.15,  max: Infinity, cls: 'mc-f5', cor: '#34D399', count: 0, mc: 0 },
+    { label: '> 15%',    min: 0.15,  max: Infinity, cls: 'mc-f5', cor: '#60A5FA', count: 0, mc: 0 },
     { label: '11–15%',   min: 0.11,  max: 0.15,     cls: 'mc-f4', cor: '#FBBF24', count: 0, mc: 0 },
     { label: '6–10%',    min: 0.06,  max: 0.11,     cls: 'mc-f3', cor: '#F97316', count: 0, mc: 0 },
     { label: '1–5%',     min: 0.01,  max: 0.06,     cls: 'mc-f2', cor: '#EF4444', count: 0, mc: 0 },
@@ -1342,7 +1342,7 @@ function formatarDF(el) {
 }
 
 function salvarDF(inputId, valor) {
-  const key = 'dg_' + inputId.replace('df-','df_');
+  const key = 'dg_pv_' + inputId.replace('df-','df_');
   localStorage.setItem(key, valor);
   renderizar();
 }
