@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dom Gabriel — Rio Verde</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+  :root {
+    --verde:     #1A5C3A;
+    --verde-med: #2E7D52;
+    --verde-cla: #D1FAE5;
+    --verde-acc: #34D399;
+    --vermelho:  #DC2626;
+    --verm-cla:  #FEE2E2;
+    --amarelo:   #D97706;
+    --amar-cla:  #FEF3C7;
+    --azul:      #1E40AF;
+    --azul-cla:  #DBEAFE;
+    --cinza-esc: #111827;
+    --cinza-med: #374151;
+    --cinza:     #6B7280;
+    --cinza-cla: #F3F4F6;
+    --borda:     #E5E7EB;
+    --branco:    #FFFFFF;
+    --fundo:     #F9FAFB;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--fundo);
+    color: var(--cinza-esc);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--verde);
+    color: #fff;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+  .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo .sigla {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--verde-acc);
+  }
+  .header-logo .nome {
+    font-size: 14px;
+    font-weight: 500;
+    opacity: .85;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .badge-loja {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    color: #fff;
+  }
+  #ultima-sync {
+    font-size: 11px;
+    opacity: .6;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .btn-sync {
+    background: var(--verde-acc);
+    color: var(--verde);
+    border: none;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity .15s;
+  }
+  .btn-sync:hover { opacity: .85; }
+
+  /* ── FILTROS ── */
+  .filtros-bar {
+    background: var(--branco);
+    border-bottom: 1px solid var(--borda);
+    padding: 12px 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .filtros-bar label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cinza);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-right: 2px;
+  }
+  .filtro-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  select, input[type="date"] {
+    border: 1px solid var(--borda);
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    color: var(--cinza-esc);
+    background: var(--branco);
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+  }
+  select:focus, input[type="date"]:focus {
+    border-color: var(--verde-med);
+  }
+  .btn-limpar {
+    background: none;
+    border: 1px solid var(--borda);
+    border-radius: 7px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--cinza);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-limpar:hover {
+    border-color: var(--cinza);
+    color: var(--cinza-esc);
+  }
+  #count-linhas {
+    margin-left: auto;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cinza);
+    background: var(--cinza-cla);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    padding: 24px 28px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ── CARDS KPI ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--branco);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--verde-acc);
+  }
+  .kpi.vermelho::before { background: var(--vermelho); }
+  .kpi.amarelo::before  { background: var(--amarelo); }
+  .kpi.azul::before     { background: var(--azul); }
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--cinza);
+    margin-bottom: 8px;
+  }
+  .kpi-valor {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--cinza-esc);
+    line-height: 1;
+  }
+  .kpi-valor.positivo { color: var(--verde-med); }
+  .kpi-valor.negativo { color: var(--vermelho); }
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--cinza);
+    margin-top: 6px;
+  }
+
+  /* ── PONTO DE EQUILÍBRIO ── */
+  .kpi.azul::before { background: var(--azul); }
+  .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+  .pe-card {
+    background: var(--branco);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .pe-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .pe-titulo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cinza-esc);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .pe-custo-fixo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--cinza);
+  }
+  .pe-custo-fixo input {
+    width: 140px;
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+  }
+  .pe-barra-wrap {
+    position: relative;
+    height: 36px;
+    background: var(--cinza-cla);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .pe-barra-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--verde-med), var(--verde-acc));
+    border-radius: 8px;
+    transition: width .6s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+  }
+  .pe-barra-fill.ultrapassou {
+    background: linear-gradient(90deg, var(--verde-med), var(--verde-acc));
+  }
+  .pe-barra-pct {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .pe-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--cinza);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .pe-status {
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+  }
+  .pe-status.ok       { background: var(--verde-cla); color: var(--verde); }
+  .pe-status.falta    { background: var(--amar-cla);  color: var(--amarelo); }
+  .pe-status.negativo { background: var(--verm-cla);  color: var(--vermelho); }
+
+  /* ── GRID CONTEÚDO ── */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .content-grid.tres {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  @media (max-width: 1100px) {
+    .content-grid, .content-grid.tres { grid-template-columns: 1fr; }
+  }
+
+  /* ── CARD GENÉRICO ── */
+  .card {
+    background: var(--branco);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--borda);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-titulo {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--cinza-med);
+  }
+  .card-body { padding: 16px 18px; }
+
+  /* ── DRE ── */
+  .dre-table { width: 100%; border-collapse: collapse; }
+  .dre-table tr { border-bottom: 1px solid var(--borda); }
+  .dre-table tr:last-child { border-bottom: none; }
+  .dre-table td {
+    padding: 9px 4px;
+    font-size: 13px;
+  }
+  .dre-table td:last-child {
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+  }
+  .dre-table td:nth-child(3) {
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--cinza);
+    width: 52px;
+  }
+  .dre-secao td {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--cinza-esc);
+    padding-top: 14px;
+  }
+  .dre-mc td {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--verde-med);
+    background: var(--verde-cla);
+    padding: 11px 8px;
+    border-radius: 6px;
+  }
+  .dre-mc.negativa td { color: var(--vermelho); background: var(--verm-cla); }
+  .dre-sub td { padding-left: 16px; color: var(--cinza-med); }
+  .dre-neg { color: var(--vermelho) !important; }
+
+  /* ── RANKING TABLE ── */
+  .rank-table { width: 100%; border-collapse: collapse; }
+  .rank-table th {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--cinza);
+    padding: 0 4px 10px;
+    text-align: left;
+    border-bottom: 2px solid var(--borda);
+  }
+  .rank-table th:last-child, .rank-table td:last-child { text-align: right; }
+  .rank-table td {
+    padding: 9px 4px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--borda);
+  }
+  .rank-table tr:last-child td { border-bottom: none; }
+  .rank-bar-wrap {
+    height: 6px;
+    background: var(--cinza-cla);
+    border-radius: 3px;
+    margin-top: 4px;
+    width: 100%;
+  }
+  .rank-bar {
+    height: 6px;
+    background: var(--verde-acc);
+    border-radius: 3px;
+    transition: width .4s ease;
+  }
+  .rank-bar.vermelho { background: var(--vermelho); }
+  .mono {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tag.verde   { background: var(--verde-cla); color: var(--verde); }
+  .tag.verm    { background: var(--verm-cla);  color: var(--vermelho); }
+  .tag.amar    { background: var(--amar-cla);  color: var(--amarelo); }
+
+  /* ── EVOLUÇÃO ── */
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* ── ALERTAS ── */
+  .alerta-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--borda);
+    gap: 8px;
+  }
+  .alerta-item:last-child { border-bottom: none; }
+  .alerta-ped {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cinza-med);
+    min-width: 60px;
+  }
+  .alerta-desc {
+    font-size: 12px;
+    color: var(--cinza-esc);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .alerta-mc {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vermelho);
+    white-space: nowrap;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 32px 0;
+    color: var(--cinza);
+    font-size: 13px;
+  }
+
+  /* ── LOADING / ERROR ── */
+  #loading {
+    position: fixed; inset: 0;
+    background: rgba(17,24,39,.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    flex-direction: column;
+    gap: 16px;
+    color: #fff;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(255,255,255,.2);
+    border-top-color: var(--verde-acc);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { font-size: 14px; opacity: .8; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Carregando dados...</p>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-logo">
+    <span class="sigla">DG</span>
+    <span class="nome">Dom Gabriel — Dashboard</span>
+  </div>
+  <div class="header-right">
+    <span class="badge-loja">📍 Rio Verde</span>
+    <span id="ultima-sync">—</span>
+    <button class="btn-sync" onclick="carregarDados()">↻ Atualizar</button>
+  </div>
+</header>
+
+<!-- FILTROS -->
+<div class="filtros-bar">
+  <div class="filtro-group">
+    <label>Período</label>
+    <input type="date" id="f-data-ini">
+    <span style="font-size:12px;color:var(--cinza)">até</span>
+    <input type="date" id="f-data-fim">
+  </div>
+  <div class="filtro-group">
+    <label>Vendedor</label>
+    <select id="f-vendedor"><option value="">Todos</option></select>
+  </div>
+  <div class="filtro-group">
+    <label>Arquiteto</label>
+    <select id="f-arquiteto"><option value="">Todos</option></select>
+  </div>
+  <div class="filtro-group">
+    <label>Status</label>
+    <select id="f-status"><option value="">Todos</option></select>
+  </div>
+  <div class="filtro-group">
+    <label>Marca</label>
+    <select id="f-marca"><option value="">Todas</option></select>
+  </div>
+  <div class="filtro-group">
+    <label>Produto</label>
+    <select id="f-produto"><option value="">Todos</option></select>
+  </div>
+  <div class="filtro-group">
+    <label>Cliente</label>
+    <select id="f-cliente"><option value="">Todos</option></select>
+  </div>
+  <button class="btn-limpar" onclick="limparFiltros()">✕ Limpar filtros</button>
+  <span id="count-linhas">— registros</span>
+</div>
+
+<!-- MAIN -->
+<main>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+
+    <!-- Faturamento expandido -->
+    <div class="kpi" style="grid-column: span 2">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
+        <div>
+          <div class="kpi-label">Receita Bruta (Faturamento)</div>
+          <div class="kpi-valor" id="kpi-fat">R$ —</div>
+          <div class="kpi-sub" id="kpi-fat-sub">— pedidos</div>
+        </div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:4px">
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);margin-bottom:4px">Revenda</div>
+            <div class="mono" id="kpi-revenda" style="font-size:14px;color:var(--cinza-esc)">R$ —</div>
+            <div style="font-size:10px;color:var(--cinza)" id="kpi-revenda-pct">—%</div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);margin-bottom:4px">Estoque</div>
+            <div class="mono" id="kpi-estoque" style="font-size:14px;color:var(--cinza-esc)">R$ —</div>
+            <div style="font-size:10px;color:var(--cinza)" id="kpi-estoque-pct">—%</div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cinza);margin-bottom:4px">VD Comissão</div>
+            <div class="mono" id="kpi-vd" style="font-size:14px;color:var(--cinza-esc)">R$ —</div>
+            <div style="font-size:10px;color:var(--cinza)" id="kpi-vd-pct">—%</div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--vermelho);margin-bottom:4px">Devolução</div>
+            <div class="mono" id="kpi-dev" style="font-size:14px;color:var(--vermelho)">R$ —</div>
+            <div style="font-size:10px;color:var(--cinza)" id="kpi-dev-pct">—%</div>
+          </div>
+        </div>
+      </div>
+      <!-- Barra de composição -->
+      <div style="margin-top:14px">
+        <div style="font-size:10px;color:var(--cinza);margin-bottom:5px;font-weight:600">COMPOSIÇÃO DA RECEITA</div>
+        <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px" id="barra-composicao"></div>
+        <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap" id="legenda-composicao"></div>
+      </div>
+    </div>
+
+    <!-- Venda da Loja -->
+    <div class="kpi azul">
+      <div class="kpi-label">Venda da Loja</div>
+      <div class="kpi-valor" id="kpi-venda-loja">R$ —</div>
+      <div class="kpi-sub">Revenda + Estoque + VD total</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--cinza)">
+        VD valor total: <span class="mono" id="kpi-vd-total" style="font-size:12px">R$ —</span>
+      </div>
+    </div>
+
+    <div class="kpi amarelo">
+      <div class="kpi-label">(-) Tributos</div>
+      <div class="kpi-valor" id="kpi-trib">R$ —</div>
+      <div class="kpi-sub" id="kpi-trib-pct">— % da receita</div>
+    </div>
+    <div class="kpi amarelo">
+      <div class="kpi-label">(-) CMV Total</div>
+      <div class="kpi-valor" id="kpi-cmv">R$ —</div>
+      <div class="kpi-sub" id="kpi-cmv-pct">— % da receita</div>
+    </div>
+    <div class="kpi amarelo">
+      <div class="kpi-label">(-) Desp. Variáveis</div>
+      <div class="kpi-valor" id="kpi-dv-desp">R$ —</div>
+      <div class="kpi-sub" id="kpi-dv-pct">— % da receita</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Margem de Contribuição</div>
+      <div class="kpi-valor" id="kpi-mc">R$ —</div>
+      <div class="kpi-sub" id="kpi-mc-pct">— %</div>
+    </div>
+  </div>
+
+  <!-- PONTO DE EQUILÍBRIO -->
+  <div class="pe-card">
+    <div class="pe-header">
+      <div class="pe-titulo">📊 Ponto de Equilíbrio</div>
+      <div class="pe-custo-fixo">
+        <label style="font-size:12px;color:var(--cinza)">Custo fixo mensal:</label>
+        <input type="text" id="pe-custo-input" value="220.000,00"
+          style="border:1px solid var(--borda);border-radius:6px;padding:4px 8px;font-size:13px;"
+          onchange="atualizarPE()">
+        <span id="pe-status-badge" class="pe-status falta">—</span>
+      </div>
+    </div>
+    <div class="pe-barra-wrap">
+      <div class="pe-barra-fill" id="pe-barra" style="width:0%">
+        <span class="pe-barra-pct" id="pe-barra-pct"></span>
+      </div>
+    </div>
+    <div class="pe-info">
+      <span id="pe-mc-txt">MC acumulada: R$ —</span>
+      <span id="pe-falta-txt">—</span>
+    </div>
+  </div>
+
+  <!-- DRE + EVOLUÇÃO -->
+  <div class="content-grid">
+
+    <!-- DRE -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-titulo">DRE Gerencial — Lucro Real</span>
+      </div>
+      <div class="card-body">
+        <table class="dre-table">
+          <tbody id="dre-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Evolução diária -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-titulo">Evolução no período</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap">
+          <canvas id="chart-evolucao"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RANKINGS -->
+  <div class="content-grid tres">
+
+    <!-- Vendedores -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-titulo">Ranking Vendedores</span>
+      </div>
+      <div class="card-body">
+        <table class="rank-table">
+          <thead>
+            <tr>
+              <th>Vendedor</th>
+              <th style="text-align:right">Fatur.</th>
+              <th style="text-align:right">MC R$</th>
+              <th style="text-align:right">MC%</th>
+            </tr>
+          </thead>
+          <tbody id="rank-vendedores"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Arquitetos -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-titulo">Ranking Arquitetos</span>
+      </div>
+      <div class="card-body">
+        <table class="rank-table">
+          <thead>
+            <tr>
+              <th>Arquiteto</th>
+              <th style="text-align:right">Fatur.</th>
+              <th style="text-align:right">MC R$</th>
+              <th style="text-align:right">MC%</th>
+            </tr>
+          </thead>
+          <tbody id="rank-arquitetos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Marcas -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-titulo">MC por Marca</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="chart-marcas"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PRODUTOS + ALERTAS -->
+  <div class="content-grid">
+
+    <!-- Top Produtos -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-titulo">Top 15 Produtos</span>
+      </div>
+      <div class="card-body">
+        <table class="rank-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th style="text-align:right">Fatur.</th>
+              <th style="text-align:right">MC R$</th>
+              <th style="text-align:right">MC%</th>
+            </tr>
+          </thead>
+          <tbody id="rank-produtos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Alertas MC negativa -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-titulo">⚠ Alertas — MC Negativa</span>
+      </div>
+      <div class="card-body" id="alertas-body"></div>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+const SUPABASE_URL = 'https://ksniedeilzwngtsjnvev.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_GdQoxmwNgw54ctCXwP4Ikg_Z1puV2Xy';
+const TABELA       = 'vendas_rio_verde';
+const STORAGE_KEY  = 'dg_rio_verde_dados';
+const STORAGE_TS   = 'dg_rio_verde_ts';
+
+// ── ESTADO ──────────────────────────────────────────────────
+let dadosBrutos = [];
+let chartEvolucao = null;
+let chartMarcas   = null;
+
+// ── FORMATAÇÃO ──────────────────────────────────────────────
+const brl = v => {
+  if (v == null || isNaN(v)) return 'R$ —';
+  return new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v);
+};
+const pct = v => {
+  if (v == null || isNaN(v)) return '—';
+  return (v * 100).toFixed(1) + '%';
+};
+const parseBRL = s => {
+  if (!s) return 0;
+  return parseFloat(String(s).replace(/\./g,'').replace(',','.')) || 0;
+};
+
+// ── CARREGAR DADOS ──────────────────────────────────────────
+async function carregarDados() {
+  document.getElementById('loading').style.display = 'flex';
+  try {
+    // Busca todos os registros com paginação
+    let todos = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/${TABELA}?select=*&order=data_venda.asc&limit=${pageSize}&offset=${from}`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      if (!res.ok) throw new Error('Erro ao buscar dados: ' + res.status);
+      const page = await res.json();
+      todos = todos.concat(page);
+      if (page.length < pageSize) break;
+      from += pageSize;
+    }
+
+    // Filtrar só linhas com dados reais
+    dadosBrutos = todos.filter(r => r.num_pedido && r.rec_bruta != null);
+
+    // Salvar no localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dadosBrutos));
+      localStorage.setItem(STORAGE_TS, new Date().toISOString());
+    } catch(e) {}
+
+    atualizarTS();
+    popularFiltros();
+    renderizar();
+  } catch(e) {
+    // Tentar carregar do cache
+    const cache = localStorage.getItem(STORAGE_KEY);
+    if (cache) {
+      dadosBrutos = JSON.parse(cache).filter(r => r.num_pedido && r.rec_bruta != null);
+      atualizarTS(true);
+      popularFiltros();
+      renderizar();
+      alert('Sem conexão — exibindo dados em cache.');
+    } else {
+      alert('Erro ao carregar dados: ' + e.message);
+    }
+  }
+  document.getElementById('loading').style.display = 'none';
+}
+
+function atualizarTS(cache=false) {
+  const ts = localStorage.getItem(STORAGE_TS);
+  const el = document.getElementById('ultima-sync');
+  if (ts) {
+    const d = new Date(ts);
+    el.textContent = (cache ? 'cache ' : 'sync ') +
+      d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+// ── FILTROS ─────────────────────────────────────────────────
+function popularFiltros() {
+  const preencher = (id, campo, label='') => {
+    const sel = document.getElementById(id);
+    const atual = sel.value;
+    const vals = [...new Set(dadosBrutos.map(r => r[campo]).filter(Boolean))].sort();
+    sel.innerHTML = `<option value="">Todos${label}</option>`;
+    vals.forEach(v => { const o = document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+    if (vals.includes(atual)) sel.value = atual;
+  };
+  preencher('f-vendedor',  'vendedor');
+  preencher('f-arquiteto', 'arquiteto');
+  preencher('f-status',    'status');
+  preencher('f-marca',     'marca');
+  preencher('f-produto',   'descricao');
+  preencher('f-cliente',   'cliente');
+
+  // Datas padrão: mês atual
+  const hoje = new Date();
+  const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  if (!document.getElementById('f-data-ini').value) {
+    document.getElementById('f-data-ini').value = ini.toISOString().split('T')[0];
+  }
+  if (!document.getElementById('f-data-fim').value) {
+    document.getElementById('f-data-fim').value = hoje.toISOString().split('T')[0];
+  }
+
+  // Eventos
+  ['f-data-ini','f-data-fim','f-vendedor','f-arquiteto','f-status','f-marca','f-produto','f-cliente']
+    .forEach(id => document.getElementById(id).addEventListener('change', renderizar));
+}
+
+function filtrar() {
+  const g = id => document.getElementById(id).value;
+  const ini = g('f-data-ini');
+  const fim = g('f-data-fim');
+  return dadosBrutos.filter(r => {
+    if (ini && r.data_venda < ini) return false;
+    if (fim && r.data_venda > fim) return false;
+    if (g('f-vendedor')  && r.vendedor  !== g('f-vendedor'))  return false;
+    if (g('f-arquiteto') && r.arquiteto !== g('f-arquiteto')) return false;
+    if (g('f-status')    && r.status    !== g('f-status'))    return false;
+    if (g('f-marca')     && r.marca     !== g('f-marca'))     return false;
+    if (g('f-produto')   && r.descricao !== g('f-produto'))   return false;
+    if (g('f-cliente')   && r.cliente   !== g('f-cliente'))   return false;
+    return true;
+  });
+}
+
+function limparFiltros() {
+  ['f-vendedor','f-arquiteto','f-status','f-marca','f-produto','f-cliente']
+    .forEach(id => document.getElementById(id).value = '');
+  ['f-data-ini','f-data-fim'].forEach(id => document.getElementById(id).value = '');
+  renderizar();
+}
+
+// ── RENDER PRINCIPAL ─────────────────────────────────────────
+function renderizar() {
+  const dados = filtrar();
+  document.getElementById('count-linhas').textContent = dados.length + ' registros';
+
+  const sum = campo => dados.reduce((a,r) => a + (parseFloat(r[campo]) || 0), 0);
+  const sumStatus = (campo, st) => dados
+    .filter(r => (r.status||'').toUpperCase() === st)
+    .reduce((a,r) => a + (parseFloat(r[campo]) || 0), 0);
+
+  const fat      = sum('rec_bruta');
+  const trib     = sum('tributos_liq');
+  const cmv      = sum('cmv_total');
+  const dv       = sum('desp_variaveis');
+  const mc       = sum('mc_rs');
+  const peds     = [...new Set(dados.map(r => r.num_pedido))].length;
+
+  // Por status
+  const fatRevenda  = sumStatus('rec_bruta', 'REVENDA');
+  const fatEstoque  = sumStatus('rec_bruta', 'ESTOQUE');
+  const fatVD       = sumStatus('rec_bruta', 'VENDA DIRETA');
+  const fatDev      = sumStatus('rec_bruta', 'DEVOLUCAO');
+  const vdTotal     = sum('vd_vlr_total_venda');
+  const vendaLoja   = fatRevenda + fatEstoque + vdTotal;
+
+  // KPI faturamento expandido
+  document.getElementById('kpi-fat').textContent         = brl(fat);
+  document.getElementById('kpi-fat-sub').textContent     = peds + ' pedidos';
+  document.getElementById('kpi-revenda').textContent     = brl(fatRevenda);
+  document.getElementById('kpi-revenda-pct').textContent = fat ? pct(fatRevenda/fat) : '—%';
+  document.getElementById('kpi-estoque').textContent     = brl(fatEstoque);
+  document.getElementById('kpi-estoque-pct').textContent = fat ? pct(fatEstoque/fat) : '—%';
+  document.getElementById('kpi-vd').textContent          = brl(fatVD);
+  document.getElementById('kpi-vd-pct').textContent      = fat ? pct(fatVD/fat) : '—%';
+  document.getElementById('kpi-dev').textContent         = brl(fatDev);
+  document.getElementById('kpi-dev-pct').textContent     = fat ? pct(Math.abs(fatDev)/fat) : '—%';
+  document.getElementById('kpi-venda-loja').textContent  = brl(vendaLoja);
+  document.getElementById('kpi-vd-total').textContent    = brl(vdTotal);
+
+  // Barra de composição
+  const positivo = fatRevenda + fatEstoque + fatVD;
+  const barItems = [
+    { val: fatRevenda, cor: '#2E7D52', label: 'Revenda' },
+    { val: fatEstoque, cor: '#34D399', label: 'Estoque' },
+    { val: fatVD,      cor: '#1E40AF', label: 'VD Comissão' },
+    { val: Math.abs(fatDev), cor: '#DC2626', label: 'Devolução' },
+  ].filter(i => i.val > 0);
+  const totalBar = barItems.reduce((a,i) => a + i.val, 0) || 1;
+  document.getElementById('barra-composicao').innerHTML = barItems.map(i =>
+    `<div style="width:${(i.val/totalBar*100).toFixed(1)}%;background:${i.cor};transition:width .4s"></div>`
+  ).join('');
+  document.getElementById('legenda-composicao').innerHTML = barItems.map(i =>
+    `<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--cinza)">
+      <div style="width:8px;height:8px;border-radius:2px;background:${i.cor}"></div>
+      ${i.label} ${positivo > 0 ? pct(i.val/totalBar) : ''}
+    </div>`
+  ).join('');
+
+  // KPIs restantes
+  document.getElementById('kpi-trib').textContent      = brl(trib);
+  document.getElementById('kpi-trib-pct').textContent  = fat ? pct(trib/fat) + ' da receita' : '—';
+  document.getElementById('kpi-cmv').textContent       = brl(cmv);
+  document.getElementById('kpi-cmv-pct').textContent   = fat ? pct(cmv/fat) + ' da receita' : '—';
+  document.getElementById('kpi-dv-desp').textContent   = brl(dv);
+  document.getElementById('kpi-dv-pct').textContent    = fat ? pct(dv/fat) + ' da receita' : '—';
+
+  const mcEl = document.getElementById('kpi-mc');
+  mcEl.textContent = brl(mc);
+  mcEl.className = 'kpi-valor ' + (mc >= 0 ? 'positivo' : 'negativo');
+  document.getElementById('kpi-mc-pct').textContent = fat ? pct(mc/fat) : '—';
+
+  renderDRE(fat, trib, cmv, dv, mc, fatRevenda, fatEstoque, fatVD, fatDev);
+  atualizarPE(mc);
+  renderEvolucao(dados);
+  renderRankVendedores(dados);
+  renderRankArquitetos(dados);
+  renderMarcas(dados);
+  renderProdutos(dados);
+  renderAlertas(dados);
+}
+
+// ── DRE ─────────────────────────────────────────────────────
+function renderDRE(fat, trib, cmv, dv, mc, fatRevenda=0, fatEstoque=0, fatVD=0, fatDev=0) {
+  const rl = fat - Math.abs(trib);
+  const rows = [
+    { label: 'RECEITA BRUTA', val: fat, cls: 'dre-secao', pct_val: 1 },
+    { label: '> Revenda',       val: fatRevenda, sub: true, pct_val: fat ? fatRevenda/fat : 0 },
+    { label: '> Estoque',       val: fatEstoque, sub: true, pct_val: fat ? fatEstoque/fat : 0 },
+    { label: '> VD Comissão',   val: fatVD,      sub: true, pct_val: fat ? fatVD/fat : 0 },
+    { label: '> Devolução',     val: fatDev,     sub: true, pct_val: fat ? Math.abs(fatDev)/fat : 0 },
+    { label: '(-) Tributos líquidos', val: trib !== 0 ? -Math.abs(trib) : 0, sub: true, pct_val: fat ? Math.abs(trib)/fat : 0 },
+    { label: 'RECEITA LÍQUIDA', val: rl, cls: 'dre-secao', pct_val: fat ? rl/fat : 0, forceColor: rl >= 0 ? '' : 'dre-neg' },
+    { label: '(-) CMV Total', val: cmv !== 0 ? -Math.abs(cmv) : 0, sub: true, pct_val: fat ? Math.abs(cmv)/fat : 0 },
+    { label: '(-) Despesas Variáveis', val: dv !== 0 ? -Math.abs(dv) : 0, sub: true, pct_val: fat ? Math.abs(dv)/fat : 0 },
+    { label: 'MARGEM DE CONTRIBUIÇÃO', val: mc, cls: 'dre-mc' + (mc < 0 ? ' negativa' : ''), pct_val: fat ? mc/fat : 0 },
+    { label: 'Desp. Fixas Administrativas', val: null, sub: true, inputId: 'df-adm' },
+    { label: 'Desp. Fixas Comerciais', val: null, sub: true, inputId: 'df-com' },
+    { label: 'Desp. Fixas Operacionais', val: null, sub: true, inputId: 'df-ope' },
+    { label: 'EBITDA / LUCRO LÍQUIDO', val: null, cls: 'dre-secao', noFormat: true },
+  ];
+
+  const dfAdm = parseBRL(localStorage.getItem('dg_df_adm') || '0');
+  const dfCom = parseBRL(localStorage.getItem('dg_df_com') || '0');
+  const dfOpe = parseBRL(localStorage.getItem('dg_df_ope') || '0');
+  rows[10].val = dfAdm > 0 ? -dfAdm : null;
+  rows[11].val = dfCom > 0 ? -dfCom : null;
+  rows[12].val = dfOpe > 0 ? -dfOpe : null;
+  const totalDF = dfAdm + dfCom + dfOpe;
+  rows[13].val = totalDF > 0 ? mc - totalDF : null;
+
+  document.getElementById('dre-body').innerHTML = rows.map(r => {
+    const neg = r.val != null && r.val < 0;
+    let valCell;
+    if (r.inputId) {
+      const stored = localStorage.getItem('dg_' + r.inputId.replace('df-','df_')) || '';
+      valCell = `<input id="${r.inputId}" type="text" value="${stored}"
+        placeholder="R$ 0,00"
+        style="border:1px solid var(--borda);border-radius:5px;padding:3px 7px;
+               font-family:'IBM Plex Mono',monospace;font-size:12px;
+               width:140px;text-align:right;color:var(--vermelho)"
+        onchange="salvarDF('${r.inputId}', this.value)"
+        onblur="formatarDF(this)"
+        onclick="this.select()">`;
+    } else {
+      valCell = r.val != null
+        ? `<span class="${neg?'dre-neg':''}">${brl(r.val)}</span>`
+        : '<span style="color:var(--cinza);font-size:11px">—</span>';
+    }
+    return `<tr class="${r.cls||''} ${r.sub?'dre-sub':''}"><td>${r.label}</td><td>${valCell}</td><td>${r.pct_val != null ? pct(Math.abs(r.pct_val)) : ''}</td></tr>`;
+  }).join('');
+}
+
+// ── PONTO DE EQUILÍBRIO ──────────────────────────────────────
+function atualizarPE(mcVal) {
+  const mc = mcVal !== undefined ? mcVal :
+    filtrar().reduce((a,r) => a + (parseFloat(r.mc_rs) || 0), 0);
+  const cf = parseBRL(document.getElementById('pe-custo-input').value);
+
+  const pctPE = cf > 0 ? Math.min(mc / cf, 1.5) : 0;
+  const largura = Math.min(Math.max(pctPE * 100, 0), 100);
+
+  document.getElementById('pe-barra').style.width = largura + '%';
+  document.getElementById('pe-barra-pct').textContent =
+    cf > 0 ? (mc/cf*100).toFixed(0) + '%' : '';
+  document.getElementById('pe-mc-txt').textContent = 'MC acumulada: ' + brl(mc);
+
+  const badge = document.getElementById('pe-status-badge');
+  const falta = cf - mc;
+
+  if (mc >= cf) {
+    badge.textContent = '✓ Atingido';
+    badge.className = 'pe-status ok';
+    document.getElementById('pe-falta-txt').textContent = 'Excedente: ' + brl(mc - cf);
+  } else if (mc > 0) {
+    badge.textContent = 'Em andamento';
+    badge.className = 'pe-status falta';
+    document.getElementById('pe-falta-txt').textContent = 'Falta: ' + brl(falta);
+  } else {
+    badge.textContent = 'MC negativa';
+    badge.className = 'pe-status negativo';
+    document.getElementById('pe-falta-txt').textContent = 'MC negativa — revisar';
+  }
+}
+
+// ── EVOLUÇÃO ─────────────────────────────────────────────────
+function renderEvolucao(dados) {
+  const porDia = {};
+  dados.forEach(r => {
+    if (!r.data_venda) return;
+    const d = r.data_venda.substring(0,10);
+    if (!porDia[d]) porDia[d] = { fat: 0, mc: 0 };
+    porDia[d].fat += parseFloat(r.rec_bruta) || 0;
+    porDia[d].mc  += parseFloat(r.mc_rs)     || 0;
+  });
+  const datas = Object.keys(porDia).sort();
+  // Acumulado
+  let acFat = 0, acMC = 0;
+  const fatAc = datas.map(d => { acFat += porDia[d].fat; return acFat; });
+  const mcAc  = datas.map(d => { acMC  += porDia[d].mc;  return acMC;  });
+  const labels = datas.map(d => {
+    const [,m,dia] = d.split('-');
+    return dia + '/' + m;
+  });
+
+  if (chartEvolucao) chartEvolucao.destroy();
+  const ctx = document.getElementById('chart-evolucao').getContext('2d');
+  chartEvolucao = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Faturamento', data: fatAc, borderColor: '#2E7D52', backgroundColor: 'rgba(46,125,82,.08)', tension: .3, fill: true, pointRadius: 2 },
+        { label: 'MC', data: mcAc, borderColor: '#34D399', backgroundColor: 'rgba(52,211,153,.08)', tension: .3, fill: true, pointRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { font: { size: 10 }, maxTicksLimit: 10 }, grid: { display: false } },
+        y: { ticks: { font: { size: 10 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' }, grid: { color: '#F3F4F6' } }
+      }
+    }
+  });
+}
+
+// ── RANKING GENÉRICO ─────────────────────────────────────────
+function renderRank(tbodyId, dados, campo, top=10) {
+  const agrup = {};
+  dados.forEach(r => {
+    const k = r[campo] || '(não informado)';
+    if (!agrup[k]) agrup[k] = { fat: 0, mc: 0 };
+    agrup[k].fat += parseFloat(r.rec_bruta) || 0;
+    agrup[k].mc  += parseFloat(r.mc_rs)     || 0;
+  });
+  const arr = Object.entries(agrup)
+    .map(([k,v]) => ({ nome: k, ...v, pct: v.fat > 0 ? v.mc/v.fat : 0 }))
+    .sort((a,b) => b.mc - a.mc)
+    .slice(0, top);
+
+  const maxFat = Math.max(...arr.map(r => r.fat), 1);
+
+  document.getElementById(tbodyId).innerHTML = arr.length === 0
+    ? `<tr><td colspan="4" class="empty-state">Sem dados</td></tr>`
+    : arr.map((r, i) => `
+      <tr>
+        <td>
+          <div style="font-size:13px;font-weight:${i<3?'600':'400'}">${r.nome}</div>
+          <div class="rank-bar-wrap"><div class="rank-bar ${r.mc<0?'vermelho':''}" style="width:${Math.max(r.fat/maxFat*100,0)}%"></div></div>
+        </td>
+        <td class="mono">${brl(r.fat)}</td>
+        <td class="mono ${r.mc<0?'dre-neg':''}">${brl(r.mc)}</td>
+        <td><span class="tag ${r.pct>=0.15?'verde':r.pct>=0?'amar':'verm'}">${pct(r.pct)}</span></td>
+      </tr>`).join('');
+}
+
+function renderRankVendedores(dados)  { renderRank('rank-vendedores', dados, 'vendedor'); }
+function renderRankArquitetos(dados)  { renderRank('rank-arquitetos', dados, 'arquiteto'); }
+function renderProdutos(dados)        { renderRank('rank-produtos', dados, 'descricao', 15); }
+
+// ── MARCAS (gráfico) ────────────────────────────────────────
+function renderMarcas(dados) {
+  const agrup = {};
+  dados.forEach(r => {
+    const k = r.marca || '(s/ marca)';
+    if (!agrup[k]) agrup[k] = { fat: 0, mc: 0 };
+    agrup[k].fat += parseFloat(r.rec_bruta) || 0;
+    agrup[k].mc  += parseFloat(r.mc_rs)     || 0;
+  });
+  const arr = Object.entries(agrup)
+    .map(([k,v]) => ({ nome: k, mc: v.mc, pct: v.fat>0 ? v.mc/v.fat : 0 }))
+    .sort((a,b) => b.mc - a.mc)
+    .slice(0, 12);
+
+  const cores = arr.map(r => r.mc >= 0 ? 'rgba(52,211,153,.8)' : 'rgba(220,38,38,.7)');
+
+  if (chartMarcas) chartMarcas.destroy();
+  const ctx = document.getElementById('chart-marcas').getContext('2d');
+  chartMarcas = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: arr.map(r => r.nome),
+      datasets: [{
+        label: 'MC R$',
+        data: arr.map(r => r.mc),
+        backgroundColor: cores,
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font:{size:10}, callback: v => 'R$'+(v/1000).toFixed(0)+'k' }, grid:{color:'#F3F4F6'} },
+        y: { ticks: { font:{size:10} }, grid:{display:false} }
+      }
+    }
+  });
+}
+
+// ── ALERTAS ──────────────────────────────────────────────────
+function renderAlertas(dados) {
+  const negativos = dados
+    .filter(r => (parseFloat(r.mc_rs)||0) < 0)
+    .sort((a,b) => (parseFloat(a.mc_rs)||0) - (parseFloat(b.mc_rs)||0))
+    .slice(0, 20);
+
+  const el = document.getElementById('alertas-body');
+  if (negativos.length === 0) {
+    el.innerHTML = `<div class="empty-state">✅ Nenhuma MC negativa no período</div>`;
+    return;
+  }
+  el.innerHTML = negativos.map(r => `
+    <div class="alerta-item">
+      <span class="alerta-ped">${r.num_pedido || '—'}</span>
+      <span class="alerta-desc" title="${r.descricao||''}">${r.descricao || r.cliente || '—'}</span>
+      <span style="font-size:11px;color:var(--cinza);margin-right:8px">${r.vendedor||''}</span>
+      <span class="alerta-mc">${brl(parseFloat(r.mc_rs))}</span>
+    </div>`).join('');
+}
+
+// ── SALVAR DESPESAS FIXAS ───────────────────────────────────
+function formatarDF(el) {
+  const num = parseBRL(el.value);
+  if (num > 0) {
+    el.value = new Intl.NumberFormat('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}).format(num);
+    el.style.color = 'var(--vermelho)';
+  } else {
+    el.value = '';
+  }
+}
+
+function salvarDF(inputId, valor) {
+  const key = 'dg_' + inputId.replace('df-','df_');
+  localStorage.setItem(key, valor);
+  renderizar();
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Tentar cache primeiro para carregar rápido
+  const cache = localStorage.getItem(STORAGE_KEY);
+  if (cache) {
+    try {
+      dadosBrutos = JSON.parse(cache).filter(r => r.num_pedido && r.rec_bruta != null);
+      atualizarTS(true);
+      popularFiltros();
+      renderizar();
+      document.getElementById('loading').style.display = 'none';
+    } catch(e) {}
+  }
+  // Buscar dados frescos em paralelo
+  carregarDados();
+});
+</script>
+</body>
+</html>
