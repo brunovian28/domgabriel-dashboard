@@ -569,6 +569,10 @@
     <label>Cliente</label>
     <select id="f-cliente"><option value="">Todos</option></select>
   </div>
+  <div class="filtro-group">
+    <label>Pedido</label>
+    <select id="f-pedido"><option value="">Todos</option></select>
+  </div>
   <button class="btn-limpar" onclick="limparFiltros()">✕ Limpar filtros</button>
   <span id="count-linhas">— registros</span>
 </div>
@@ -712,6 +716,7 @@
     <div class="card">
       <div class="card-header">
         <span class="card-titulo">DRE Gerencial — Lucro Real</span>
+        <span id="dre-filtro-info" style="font-size:11px;color:var(--cinza);font-family:'IBM Plex Mono',monospace"></span>
       </div>
       <div class="card-body">
         <table class="dre-table">
@@ -927,6 +932,7 @@ function popularFiltros() {
   preencher('f-marca',     'marca');
   preencher('f-produto',   'descricao');
   preencher('f-cliente',   'cliente');
+  preencher('f-pedido',    'num_pedido');
 
   // Datas padrão: mês atual
   const hoje = new Date();
@@ -939,7 +945,7 @@ function popularFiltros() {
   }
 
   // Eventos
-  ['f-data-ini','f-data-fim','f-vendedor','f-arquiteto','f-status','f-marca','f-produto','f-cliente']
+  ['f-data-ini','f-data-fim','f-vendedor','f-arquiteto','f-status','f-marca','f-produto','f-cliente','f-pedido']
     .forEach(id => document.getElementById(id).addEventListener('change', renderizar));
 }
 
@@ -955,13 +961,14 @@ function filtrar() {
     if (g('f-status')    && r.status    !== g('f-status'))    return false;
     if (g('f-marca')     && r.marca     !== g('f-marca'))     return false;
     if (g('f-produto')   && r.descricao !== g('f-produto'))   return false;
-    if (g('f-cliente')   && r.cliente   !== g('f-cliente'))   return false;
+    if (g('f-cliente')   && r.cliente    !== g('f-cliente'))   return false;
+    if (g('f-pedido')    && r.num_pedido !== g('f-pedido'))    return false;
     return true;
   });
 }
 
 function limparFiltros() {
-  ['f-vendedor','f-arquiteto','f-status','f-marca','f-produto','f-cliente']
+  ['f-vendedor','f-arquiteto','f-status','f-marca','f-produto','f-cliente','f-pedido']
     .forEach(id => document.getElementById(id).value = '');
   ['f-data-ini','f-data-fim'].forEach(id => document.getElementById(id).value = '');
   renderizar();
@@ -1038,6 +1045,16 @@ function renderizar() {
   mcEl.className = 'kpi-valor ' + (mc >= 0 ? 'positivo' : 'negativo');
   document.getElementById('kpi-mc-pct').textContent = fat ? pct(mc/fat) : '—';
 
+  // Info filtro ativo na DRE
+  const infoPed    = document.getElementById('f-pedido').value;
+  const infoCli    = document.getElementById('f-cliente').value;
+  const dreInfo    = document.getElementById('dre-filtro-info');
+  if (dreInfo) {
+    let infoTxt = '';
+    if (infoPed) infoTxt += 'Pedido: ' + infoPed + '  ';
+    if (infoCli) infoTxt += 'Cliente: ' + infoCli;
+    dreInfo.textContent = infoTxt;
+  }
   renderDRE(fat, trib, cmv, dv, mc, fatRevenda, fatEstoque, fatVD, fatDev);
   atualizarPE(mc);
   renderEvolucao(dados);
