@@ -365,25 +365,53 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
       <div class="card-body"><table class="dre-table"><tbody id="dre-body"></tbody></table></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-titulo">Evolução no Período</span></div>
+      <div class="card-header"><span class="card-titulo">Evolução Acumulada no Período</span></div>
       <div class="card-body"><div class="chart-wrap"><canvas id="chart-evo"></canvas></div></div>
     </div>
   </div>
 
-  <!-- RANKINGS -->
-  <div class="grid3">
-    <div class="card">
-      <div class="card-header"><span class="card-titulo">Ranking Vendedores</span></div>
-      <div class="card-body"><table class="rank-table"><thead><tr><th>Vendedor</th><th>Venda Loja</th><th>MC R$</th><th>MC%</th><th>Meta</th></tr></thead><tbody id="rank-vend"></tbody></table></div>
+  <!-- PICO DE VENDAS POR DIA -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header">
+      <span class="card-titulo">Venda por Dia — Pico diário</span>
+      <span id="pico-info" style="font-size:11px;color:var(--cinza);font-family:'IBM Plex Mono',monospace"></span>
     </div>
-    <div class="card">
-      <div class="card-header"><span class="card-titulo">Ranking Arquitetos</span></div>
-      <div class="card-body"><table class="rank-table"><thead><tr><th>Arquiteto</th><th>Venda Loja</th><th>MC R$</th><th>MC%</th></tr></thead><tbody id="rank-arq"></tbody></table></div>
+    <div class="card-body"><div class="chart-wrap tall"><canvas id="chart-pico"></canvas></div></div>
+  </div>
+
+  <!-- RANKING VENDEDORES — tabela completa -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><span class="card-titulo">Ranking Vendedores</span></div>
+    <div class="card-body" style="overflow-x:auto">
+      <table class="rank-table" style="min-width:800px">
+        <thead><tr>
+          <th>Vendedor</th><th>Venda Loja</th><th>Faturamento</th>
+          <th>Qtde Pedidos</th><th>Ticket Médio</th><th>MC R$</th><th>MC%</th>
+          <th>Meta</th><th>% da Meta</th>
+        </tr></thead>
+        <tbody id="rank-vend"></tbody>
+      </table>
     </div>
-    <div class="card">
-      <div class="card-header"><span class="card-titulo">RC × Argamassa</span></div>
-      <div class="card-body" id="arg-body"></div>
+  </div>
+
+  <!-- RANKING ARQUITETOS — tabela completa -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><span class="card-titulo">Ranking Arquitetos — ordenado por Venda Loja</span></div>
+    <div class="card-body" style="overflow-x:auto">
+      <table class="rank-table" style="min-width:800px">
+        <thead><tr>
+          <th>Arquiteto</th><th>Venda Loja</th><th>Faturamento</th>
+          <th>Qtde Pedidos</th><th>Ticket Médio</th><th>MC R$</th><th>MC%</th>
+        </tr></thead>
+        <tbody id="rank-arq"></tbody>
+      </table>
     </div>
+  </div>
+
+  <!-- RC × ARGAMASSA -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><span class="card-titulo">RC × Argamassa</span></div>
+    <div class="card-body" id="arg-body"></div>
   </div>
 
   <!-- MARCAS TABELA COMPLETA -->
@@ -703,12 +731,21 @@ function renderizar() {
   const fatVD  = sumSt(dados,'rec_bruta','VENDA DIRETA');
   const fatDev = sumSt(dados,'rec_bruta','DEVOLUCAO');
   const vdTot  = sum(dados,'vd_vlr_total_venda');
-  const vendaLoja = fatRev+fatEst+vdTot;
+  // Venda da Loja = Revenda + Estoque + VD Total - Devolução (fatDev já é negativo)
+  const vendaLoja = fatRev + fatEst + vdTot + fatDev;
   const ticketMedio = peds>0 ? vendaLoja/peds : 0;
 
-  // RC × Argamassa
-  const m2RC  = dados.filter(r=>(r.unidade||'').toUpperCase()==='M2').reduce((a,r)=>a+(parseFloat(r.qtde)||0),0);
-  const sacArg = dados.filter(r=>['PORTOKOLL','SIKA'].includes((r.marca||'').toUpperCase())).length;
+  // RC × Argamassa — somando QTDE real e descontando devoluções
+  const m2RC = dados.reduce((a,r) => {
+    if ((r.unidade||'').toUpperCase() !== 'M2') return a;
+    const q = parseFloat(r.qtde) || 0;
+    return (r.status||'').toUpperCase() === 'DEVOLUCAO' ? a - q : a + q;
+  }, 0);
+  const sacArg = dados.reduce((a,r) => {
+    if (!['PORTOKOLL','SIKA'].includes((r.marca||'').toUpperCase())) return a;
+    const q = parseFloat(r.qtde) || 0;
+    return (r.status||'').toUpperCase() === 'DEVOLUCAO' ? a - q : a + q;
+  }, 0);
   const metaArg = m2RC/2.5;
   const argPct = metaArg>0 ? sacArg/metaArg : 0;
 
@@ -773,7 +810,8 @@ function renderDRE(fat,trib,cmv,dv,mc,fatRev,fatEst,fatVD,fatDev) {
   const dfCom=parseBRL(localStorage.getItem('dg_rv_df_com')||'0');
   const dfOpe=parseBRL(localStorage.getItem('dg_rv_df_ope')||'0');
   const vdTot=sum(filtrar(),'vd_vlr_total_venda');
-  const vendaLoja=sumSt(filtrar(),'rec_bruta','REVENDA')+sumSt(filtrar(),'rec_bruta','ESTOQUE')+vdTot;
+  const fatDevDRE=sumSt(filtrar(),'rec_bruta','DEVOLUCAO');
+  const vendaLoja=sumSt(filtrar(),'rec_bruta','REVENDA')+sumSt(filtrar(),'rec_bruta','ESTOQUE')+vdTot+fatDevDRE;
 
   const rows=[
     {l:'VENDA DA LOJA',v:vendaLoja,cls:'dre-sec',p:fat?vendaLoja/fat:0,bold:true,color:'var(--azul)'},
@@ -842,10 +880,45 @@ function renderEvolucao(dados) {
   if(charts.evo)charts.evo.destroy();
   charts.evo=new Chart(document.getElementById('chart-evo').getContext('2d'),{
     type:'line',data:{labels:lbs,datasets:[
-      {label:'Faturamento',data:fa,borderColor:'#1E40AF',backgroundColor:'rgba(30,64,175,.08)',tension:.3,fill:true,pointRadius:2},
-      {label:'MC',data:ma,borderColor:'#60A5FA',backgroundColor:'rgba(96,165,250,.08)',tension:.3,fill:true,pointRadius:2}
+      {label:'Faturamento',data:fa,borderColor:'#2E7D52',backgroundColor:'rgba(46,125,82,.08)',tension:.3,fill:true,pointRadius:2},
+      {label:'MC',data:ma,borderColor:'#34D399',backgroundColor:'rgba(52,211,153,.08)',tension:.3,fill:true,pointRadius:2}
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Inter',size:10},boxWidth:10}}},scales:{x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>'R$'+(v/1000).toFixed(0)+'k'},grid:{color:'#F3F4F6'}}}}
   });
+
+  // Gráfico pico diário
+  const vendaDia = dts.map(d=>pd[d].f);
+  const maxDia = Math.max(...vendaDia);
+  const maxDiaLabel = lbs[vendaDia.indexOf(maxDia)];
+  const picoEl = document.getElementById('pico-info');
+  if(picoEl) picoEl.textContent = 'Maior dia: '+maxDiaLabel+' — '+brl(maxDia);
+
+  if(charts.pico)charts.pico.destroy();
+  const ctxP = document.getElementById('chart-pico');
+  if(ctxP) {
+    charts.pico=new Chart(ctxP.getContext('2d'),{
+      type:'bar',
+      data:{
+        labels:lbs,
+        datasets:[
+          {label:'Venda do dia',data:vendaDia,
+           backgroundColor:vendaDia.map(v=>v===maxDia?'#1E40AF':'rgba(96,165,250,.6)'),
+           borderRadius:4,borderWidth:0},
+          {label:'MC do dia',data:dts.map(d=>pd[d].mc),
+           backgroundColor:'rgba(52,211,153,.5)',
+           borderRadius:4,borderWidth:0,type:'line',
+           borderColor:'#34D399',fill:false,tension:.3,pointRadius:3}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{font:{family:'Inter',size:10},boxWidth:10}}},
+        scales:{
+          x:{ticks:{font:{size:9},maxTicksLimit:15},grid:{display:false}},
+          y:{ticks:{font:{size:9},callback:v=>'R$'+(v/1000).toFixed(0)+'k'},grid:{color:'#F3F4F6'}}
+        }
+      }
+    });
+  }
 }
 
 // ── RANKINGS ─────────────────────────────────────────────────
@@ -857,24 +930,35 @@ function renderRankVendedores(dados,totalVendaLoja,totalPeds) {
     ag[k].fat+=parseFloat(r.rec_bruta)||0;
     ag[k].mc+=parseFloat(r.mc_rs)||0;
     const st=(r.status||'').toUpperCase();
-    ag[k].vl+=(st==='REVENDA'||st==='ESTOQUE'?(parseFloat(r.rec_bruta)||0):0)+(parseFloat(r.vd_vlr_total_venda)||0);
+    const rb=parseFloat(r.rec_bruta)||0;
+    const vd=parseFloat(r.vd_vlr_total_venda)||0;
+    if(st==='REVENDA'||st==='ESTOQUE') ag[k].vl+=rb;
+    else if(st==='VENDA DIRETA') ag[k].vl+=vd;
+    else if(st==='DEVOLUCAO') ag[k].vl+=rb; // já negativo
     if(r.num_pedido)ag[k].peds.add(r.num_pedido);
   });
-  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0})).sort((a,b)=>b.vl-a.vl);
+  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0,ticket:v.peds.size>0?v.vl/v.peds.size:0})).sort((a,b)=>b.vl-a.vl);
   const maxVL=Math.max(...arr.map(r=>r.vl),1);
   const metas={daniele:'meta_daniele',luana:'meta_luana',chapadao:'meta_chapadao',gabriel:'meta_gabriel'};
   document.getElementById('rank-vend').innerHTML=arr.map((r,i)=>{
     const mKey=Object.entries(metas).find(([k])=>r.nome.toLowerCase().includes(k));
     const meta=mKey&&dadosMeta[mKey[1]]?dadosMeta[mKey[1]]:null;
-    const metaTxt=meta?`<div class="rank-bar-wrap"><div class="rank-bar ${r.vl<meta?'neg':''}" style="width:${Math.min(r.vl/meta*100,100).toFixed(0)}%"></div></div><span style="font-size:9px;color:var(--cinza)">${pct(r.vl/meta)} da meta</span>`:'';
-    return `<tr><td><div style="font-weight:${i<3?700:400};font-size:12px">${r.nome}</div>
-      <div class="rank-bar-wrap"><div class="rank-bar" style="width:${(r.vl/maxVL*100).toFixed(0)}%"></div></div>
-      ${metaTxt}</td>
+    const metaPct=meta?pct(r.vl/meta):'—';
+    const metaVal=meta?brl(meta):'—';
+    return `<tr>
+      <td><div style="font-weight:${i<3?700:400};font-size:12px">${r.nome}</div>
+        <div class="rank-bar-wrap"><div class="rank-bar ${r.vl<0?'neg':''}" style="width:${Math.min(Math.abs(r.vl)/maxVL*100,100).toFixed(0)}%"></div></div>
+      </td>
       <td class="mono">${brl(r.vl)}</td>
+      <td class="mono">${brl(r.fat)}</td>
+      <td class="mono">${r.peds.size}</td>
+      <td class="mono">${brl(r.ticket)}</td>
       <td class="mono ${r.mc<0?'dre-neg':''}">${brl(r.mc)}</td>
       <td><span class="tag ${r.pct>=.15?'g':r.pct>=0?'a':'r'}">${pct(r.pct)}</span></td>
-      <td class="mono" style="font-size:10px">${meta?brl(meta):'—'}</td></tr>`;
-  }).join('')||'<tr><td colspan="5" class="empty">Sem dados</td></tr>';
+      <td class="mono" style="font-size:10px">${metaVal}</td>
+      <td><span class="tag ${!meta?'':r.vl>=meta?'g':r.vl/meta>=.7?'a':'r'}">${metaPct}</span></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="9" class="empty">Sem dados</td></tr>';
 }
 
 function renderRankArquitetos(dados) {
@@ -884,10 +968,14 @@ function renderRankArquitetos(dados) {
     if(!ag[k])ag[k]={fat:0,mc:0,vl:0};
     ag[k].fat+=parseFloat(r.rec_bruta)||0;
     ag[k].mc+=parseFloat(r.mc_rs)||0;
-    const st=(r.status||'').toUpperCase();
-    ag[k].vl+=(st==='REVENDA'||st==='ESTOQUE'?(parseFloat(r.rec_bruta)||0):0)+(parseFloat(r.vd_vlr_total_venda)||0);
+    const stp=(r.status||'').toUpperCase();
+    const rbp=parseFloat(r.rec_bruta)||0;
+    const vdp=parseFloat(r.vd_vlr_total_venda)||0;
+    if(stp==='REVENDA'||stp==='ESTOQUE') ag[k].vl+=rbp;
+    else if(stp==='VENDA DIRETA') ag[k].vl+=vdp;
+    else if(stp==='DEVOLUCAO') ag[k].vl+=rbp;
   });
-  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0})).sort((a,b)=>b.mc-a.mc).slice(0,10);
+  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0})).sort((a,b)=>b.vl-a.vl).slice(0,15);
   const maxVL=Math.max(...arr.map(r=>r.vl),1);
   document.getElementById('rank-arq').innerHTML=arr.map((r,i)=>`<tr><td>
     <div style="font-weight:${i<3?700:400};font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">${r.nome}</div>
@@ -906,8 +994,12 @@ function renderMarcas(dados) {
     ag[k].mc+=parseFloat(r.mc_rs)||0;
     ag[k].cf+=parseFloat(r.custo_financeiro)||0;
     ag[k].qtd+=parseFloat(r.qtde)||0;
-    const st=(r.status||'').toUpperCase();
-    ag[k].vl+=(st==='REVENDA'||st==='ESTOQUE'?(parseFloat(r.rec_bruta)||0):0)+(parseFloat(r.vd_vlr_total_venda)||0);
+    const stm=(r.status||'').toUpperCase();
+    const rbm=parseFloat(r.rec_bruta)||0;
+    const vdm=parseFloat(r.vd_vlr_total_venda)||0;
+    if(stm==='REVENDA'||stm==='ESTOQUE') ag[k].vl+=rbm;
+    else if(stm==='VENDA DIRETA') ag[k].vl+=vdm;
+    else if(stm==='DEVOLUCAO') ag[k].vl+=rbm;
     if(r.num_pedido)ag[k].peds.add(r.num_pedido);
   });
   const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0,ticket:v.peds.size>0?v.vl/v.peds.size:0})).sort((a,b)=>b.vl-a.vl);
@@ -932,8 +1024,12 @@ function renderProdutos(dados) {
     ag[k].fat+=parseFloat(r.rec_bruta)||0;
     ag[k].mc+=parseFloat(r.mc_rs)||0;
     ag[k].qtd+=parseFloat(r.qtde)||0;
-    const st=(r.status||'').toUpperCase();
-    ag[k].vl+=(st==='REVENDA'||st==='ESTOQUE'?(parseFloat(r.rec_bruta)||0):0)+(parseFloat(r.vd_vlr_total_venda)||0);
+    const stp=(r.status||'').toUpperCase();
+    const rbp=parseFloat(r.rec_bruta)||0;
+    const vdp=parseFloat(r.vd_vlr_total_venda)||0;
+    if(stp==='REVENDA'||stp==='ESTOQUE') ag[k].vl+=rbp;
+    else if(stp==='VENDA DIRETA') ag[k].vl+=vdp;
+    else if(stp==='DEVOLUCAO') ag[k].vl+=rbp;
   });
   const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0})).sort((a,b)=>b.vl-a.vl).slice(0,15);
   document.getElementById('rank-prod').innerHTML=arr.map((r,i)=>`<tr>
