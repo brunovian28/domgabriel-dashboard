@@ -233,6 +233,7 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
   <div class="tab ativo" onclick="mudarTab('vendas',this)">📊 Vendas & DRE</div>
   <div class="tab" onclick="mudarTab('financeiro',this)">💳 Financeiro</div>
   <div class="tab" onclick="mudarTab('metas',this)">🎯 Metas</div>
+  <div class="tab" onclick="mudarTab('crm',this)">🤝 CRM</div>
   <div class="tab" onclick="mudarTab('ciclos',this)">🔄 Ciclos de Clientes</div>
   <div class="tab" onclick="mudarTab('alertas',this)">⚠ Alertas</div>
 </div>
@@ -510,6 +511,44 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
   </div>
 </div>
 
+<!-- ═══ SEÇÃO CRM ═══ -->
+<div class="secao" id="sec-crm">
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi azul"><div class="kpi-label">Contatos</div><div class="kpi-valor pos" id="crm-kpi-contatos">—</div><div class="kpi-sub">total no funil</div></div>
+    <div class="kpi azul"><div class="kpi-label">Qualificados</div><div class="kpi-valor pos" id="crm-kpi-qualif">—</div><div class="kpi-sub" id="crm-kpi-qualif-sub">—</div></div>
+    <div class="kpi azul"><div class="kpi-label">Orçamentos</div><div class="kpi-valor pos" id="crm-kpi-orc">—</div><div class="kpi-sub" id="crm-kpi-orc-sub">—</div></div>
+    <div class="kpi amarelo"><div class="kpi-label">Valor em Aberto</div><div class="kpi-valor" id="crm-kpi-aberto">—</div><div class="kpi-sub">em negociação</div></div>
+  </div>
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+    <div class="kpi"><div class="kpi-label">Fechados (total + parcial)</div><div class="kpi-valor pos" id="crm-kpi-fechados">—</div><div class="kpi-sub" id="crm-kpi-taxa">—</div></div>
+    <div class="kpi vermelho"><div class="kpi-label">Perdidos (total)</div><div class="kpi-valor neg" id="crm-kpi-perdidos">—</div><div class="kpi-sub">negociações</div></div>
+    <div class="kpi vermelho"><div class="kpi-label">Valor Perdido Total</div><div class="kpi-valor neg" id="crm-kpi-vlrperdido">—</div><div class="kpi-sub">total + parcial</div></div>
+    <div class="kpi laranja"><div class="kpi-label">Arquitetos Atrasados</div><div class="kpi-valor" id="crm-kpi-atrasados">—</div><div class="kpi-sub">visita fora do prazo</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">🔥 Pipeline Ativo</span></div>
+      <div class="card-body" id="crm-pipeline"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">❌ Perdas por Motivo (total + parcial)</span></div>
+      <div class="card-body" id="crm-perdidos"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">📡 Radar de Visitas a Arquitetos</span></div>
+      <div class="card-body" id="crm-radar-arq"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">🔁 Provável Falta de Material (recompra)</span></div>
+      <div class="card-body" id="crm-recompra"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ SEÇÃO CICLOS ═══ -->
 <div class="secao" id="sec-ciclos">
   <div class="ciclo-funil" id="ciclo-funil"></div>
@@ -546,6 +585,16 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
       <div class="card-body" id="alertas-dev"></div>
     </div>
   </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">⏰ Oportunidades Paradas</span></div>
+      <div class="card-body" id="alertas-parado"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">⚠ Conflito: Perdido x Venda Real</span></div>
+      <div class="card-body" id="alertas-conflito"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -554,9 +603,15 @@ const SUPABASE_KEY = 'sb_publishable_GdQoxmwNgw54ctCXwP4Ikg_Z1puV2Xy';
 const TABELA       = 'vendas_primavera';
 const TABELA_META  = 'metas_primavera';
 const TABELA_CTRL  = 'controle_clientes_primavera';
+const TABELA_OPORT   = 'oportunidades_primavera';
+const TABELA_VISITAS = 'visitas_arquitetos_primavera';
+const TABELA_MARCACAT= 'marca_categoria_primavera';
+const TABELA_ARQ     = 'arquitetos_primavera';
+const TABELA_PARAMS  = 'parametros_crm_primavera';
 const SK = 'dg_pv2_dados', ST = 'dg_pv2_ts';
 
 let dadosBrutos = [], dadosMeta = {}, dadosCtrl = [];
+let dadosOport = [], dadosVisitas = [], dadosMarcaCat = [], dadosArquitetos = [], paramsCRM = {};
 let charts = {};
 let multiSel = { vendedor:[], arquiteto:[], marca:[], cliente:[] };
 
@@ -639,12 +694,32 @@ async function carregarDados() {
     const metaPg = await resMeta.json();
     dadosMeta = metaPg.length>0 ? metaPg[0] : {};
 
-    // Controle clientes
+    // Controle clientes (legado — mantido só por compatibilidade)
     const resCtrl = await fetch(`${SUPABASE_URL}/rest/v1/${TABELA_CTRL}?select=*&limit=2000`,
       {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
     dadosCtrl = await resCtrl.json();
 
-    try { localStorage.setItem(SK,JSON.stringify({dados:dadosBrutos,meta:dadosMeta,ctrl:dadosCtrl}));
+    // CRM — oportunidades, visitas, marca x categoria, arquitetos, parâmetros
+    const hCRM = {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}};
+    const [resOport,resVisitas,resMarcaCat,resArq,resParams] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/${TABELA_OPORT}?select=*&limit=2000`,hCRM),
+      fetch(`${SUPABASE_URL}/rest/v1/${TABELA_VISITAS}?select=*&limit=2000`,hCRM),
+      fetch(`${SUPABASE_URL}/rest/v1/${TABELA_MARCACAT}?select=*&limit=2000`,hCRM),
+      fetch(`${SUPABASE_URL}/rest/v1/${TABELA_ARQ}?select=*&limit=2000`,hCRM),
+      fetch(`${SUPABASE_URL}/rest/v1/${TABELA_PARAMS}?select=*&limit=200`,hCRM),
+    ]);
+    dadosOport     = resOport.ok     ? await resOport.json()     : [];
+    dadosVisitas   = resVisitas.ok   ? await resVisitas.json()   : [];
+    dadosMarcaCat  = resMarcaCat.ok  ? await resMarcaCat.json()  : [];
+    dadosArquitetos= resArq.ok       ? await resArq.json()       : [];
+    const paramsArr= resParams.ok    ? await resParams.json()    : [];
+    paramsCRM = {};
+    paramsArr.forEach(p=>{ if(p.parametro) paramsCRM[p.parametro]=parseFloat(p.valor); });
+
+    try { localStorage.setItem(SK,JSON.stringify({
+            dados:dadosBrutos,meta:dadosMeta,ctrl:dadosCtrl,
+            oport:dadosOport,visitas:dadosVisitas,marcacat:dadosMarcaCat,arq:dadosArquitetos,params:paramsCRM
+          }));
           localStorage.setItem(ST,new Date().toISOString()); } catch(e){}
 
     atualizarTS(); popularFiltros(); renderizar();
@@ -655,6 +730,11 @@ async function carregarDados() {
       dadosBrutos = (obj.dados||[]).filter(r=>r.num_pedido&&r.rec_bruta!=null);
       dadosMeta   = obj.meta||{};
       dadosCtrl   = obj.ctrl||[];
+      dadosOport      = obj.oport||[];
+      dadosVisitas    = obj.visitas||[];
+      dadosMarcaCat   = obj.marcacat||[];
+      dadosArquitetos = obj.arq||[];
+      paramsCRM       = obj.params||{};
       atualizarTS(true); popularFiltros(); renderizar();
       alert('Sem conexão — exibindo cache.');
     } else { alert('Erro: '+e.message); }
@@ -801,6 +881,11 @@ function renderizar() {
   renderArgamassa(m2RC,sacArg,metaArg,argPct,dados);
   renderCiclos();
   renderAlertas(dados);
+  renderCRM();
+  renderRadarArquitetos();
+  renderRecompra();
+  renderAlertaParado();
+  renderAlertaConflito();
 }
 
 // ── DRE ──────────────────────────────────────────────────────
@@ -1206,82 +1291,270 @@ function renderBarraMeta(pref,real,meta,realId,faltaId,badgeId) {
   if(badgeId){const b=document.getElementById(badgeId);if(real>=meta){b.textContent='✓ Atingida';b.className='meta-badge ok';}else{b.textContent=meta>0?pct(real/meta):'—';b.className='meta-badge '+(real/meta>=.7?'falta':'neg');}}
 }
 
-// ── CICLOS ────────────────────────────────────────────────────
+// ── CICLOS (calculado automaticamente: vendas × marca_categoria) ──────
+const CICLOS_DEF=[
+  {nome:'RC',key:'RC',cor:'#1E40AF'},
+  {nome:'Argamassa',key:'ARGAMASSA',cor:'#7C3AED'},
+  {nome:'Louças',key:'LOUCAS E METAIS',cor:'#16A34A'},
+  {nome:'Eletro',key:'ELETRO',cor:'#EA580C'},
+  {nome:'Jacuzzi',key:'JACUZZI',cor:'#0891B2'},
+  {nome:'Castelato',key:'CASTELATO',cor:'#CA8A04'},
+];
+function mapaMarcaCategoria() {
+  const m={};
+  dadosMarcaCat.forEach(r=>{ if(r.marca) m[String(r.marca).toUpperCase()]=String(r.categoria||'').toUpperCase(); });
+  return m;
+}
+function clientesPorCiclo() {
+  const catMap=mapaMarcaCategoria();
+  const porCliente={};
+  dadosBrutos.forEach(r=>{
+    if(!r.cliente||(r.status||'').toUpperCase()==='DEVOLUCAO') return;
+    const cat=catMap[String(r.marca||'').toUpperCase()];
+    if(!cat) return;
+    if(!porCliente[r.cliente]) porCliente[r.cliente]={cliente:r.cliente,consultor:r.vendedor,ultimaData:r.data_venda,cats:{}};
+    const cl=porCliente[r.cliente];
+    if(!cl.cats[cat]||r.data_venda>cl.cats[cat]) cl.cats[cat]=r.data_venda;
+    if(r.data_venda>cl.ultimaData){cl.ultimaData=r.data_venda;cl.consultor=r.vendedor;}
+  });
+  return Object.values(porCliente);
+}
 function renderCiclos() {
-  const ciclos=[
-    {nome:'RC',k:'ciclo_rc_status',cor:'#1E40AF'},
-    {nome:'Argamassa',k:'ciclo_arg_status',cor:'#7C3AED'},
-    {nome:'Louças',k:'ciclo_lm_status',cor:'#16A34A'},
-    {nome:'Eletro',k:'ciclo_el_status',cor:'#EA580C'},
-    {nome:'Jacuzzi',k:'ciclo_jacuzzi',cor:'#0891B2'},
-    {nome:'Castelato',k:'ciclo_castelato',cor:'#CA8A04'},
-  ];
-  const total=dadosCtrl.length||1;
-  document.getElementById('ciclo-funil').innerHTML=ciclos.map(c=>{
-    const fech=dadosCtrl.filter(r=>(r[c.k]||'').toUpperCase()==='FECHADO').length;
-    const orca=dadosCtrl.filter(r=>(r[c.k]||'').toUpperCase()==='ORCAMENTO').length;
-    const perd=dadosCtrl.filter(r=>(r[c.k]||'').toUpperCase()==='PERDIDO').length;
+  const clientes=clientesPorCiclo();
+  const total=clientes.length||1;
+
+  document.getElementById('ciclo-funil').innerHTML=CICLOS_DEF.map(c=>{
+    const fech=clientes.filter(cl=>cl.cats[c.key]).length;
     return `<div class="ciclo-card">
       <div class="ciclo-nome">${c.nome}</div>
       <div class="ciclo-num" style="color:${c.cor}">${fech}</div>
-      <div class="ciclo-sub">fechados</div>
-      <div style="font-size:9px;margin-top:4px;color:var(--amarelo)">${orca} em orç.</div>
-      <div style="font-size:9px;color:var(--vermelho)">${perd} perdidos</div>
+      <div class="ciclo-sub">clientes fecharam</div>
       <div class="ciclo-barra"><div class="ciclo-barra-fill" style="width:${(fech/total*100).toFixed(0)}%;background:${c.cor}"></div></div>
     </div>`;
   }).join('');
 
-  // Em orçamento
-  const emOrc=dadosCtrl.filter(r=>ciclos.some(c=>(r[c.k]||'').toUpperCase()==='ORCAMENTO'))
+  // Em orçamento — vem da aba OPORTUNIDADES (categorias marcadas SIM, negociação em andamento)
+  const emOrc=dadosOport.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO' &&
+    (r.cat_rc||r.cat_argamassa||r.cat_loucas_metais||r.cat_eletro||r.cat_jacuzzi||r.cat_castelato))
     .sort((a,b)=>(a.cliente||'').localeCompare(b.cliente||'')).slice(0,15);
   document.getElementById('ciclo-orcamento').innerHTML=emOrc.length===0?'<div class="empty">Nenhum cliente em orçamento</div>':
     emOrc.map(r=>{
-      const orcCiclos=ciclos.filter(c=>(r[c.k]||'').toUpperCase()==='ORCAMENTO').map(c=>c.nome);
+      const catsOrc=[];
+      if((r.cat_rc||'').toUpperCase()==='SIM')catsOrc.push('RC');
+      if((r.cat_argamassa||'').toUpperCase()==='SIM')catsOrc.push('Argamassa');
+      if((r.cat_loucas_metais||'').toUpperCase()==='SIM')catsOrc.push('Louças');
+      if((r.cat_eletro||'').toUpperCase()==='SIM')catsOrc.push('Eletro');
+      if((r.cat_jacuzzi||'').toUpperCase()==='SIM')catsOrc.push('Jacuzzi');
+      if((r.cat_castelato||'').toUpperCase()==='SIM')catsOrc.push('Castelato');
       return `<div class="cli-item">
         <div class="cli-nome">${r.cliente||'—'}</div>
         <div class="cli-cons">${r.consultor||''}</div>
-        <div style="font-size:10px;color:var(--amarelo);font-weight:600">${orcCiclos.join(', ')}</div>
-        <div class="cli-proximo">${r.proximo_passo||''}</div>
+        <div style="font-size:10px;color:var(--amarelo);font-weight:600">${catsOrc.join(', ')}</div>
+        <div class="cli-proximo">${r.proxima_acao||''}</div>
       </div>`;
     }).join('');
 
-  // Inativos +90 dias
+  // Inativos +90 dias (sem nenhuma compra recente)
   const hoje=new Date();
-  const inativos=dadosCtrl.filter(r=>{
-    if(!r.data_entrada)return false;
-    const d=new Date(r.data_entrada);
-    const dias=(hoje-d)/(1000*60*60*24);
-    const temFechado=ciclos.some(c=>(r[c.k]||'').toUpperCase()==='FECHADO');
-    return dias>90&&!temFechado;
-  }).sort((a,b)=>new Date(a.data_entrada)-new Date(b.data_entrada)).slice(0,15);
-
+  const inativos=clientes.filter(cl=>{
+    if(!cl.ultimaData) return false;
+    return (hoje-new Date(cl.ultimaData))/(1000*60*60*24)>90;
+  }).sort((a,b)=>new Date(a.ultimaData)-new Date(b.ultimaData)).slice(0,15);
   document.getElementById('ciclo-inativos').innerHTML=inativos.length===0?'<div class="empty">Nenhum cliente inativo</div>':
-    inativos.map(r=>{
-      const d=new Date(r.data_entrada);
-      const dias=Math.floor((hoje-d)/(1000*60*60*24));
+    inativos.map(cl=>{
+      const dias=Math.floor((hoje-new Date(cl.ultimaData))/(1000*60*60*24));
       return `<div class="cli-item">
-        <div class="cli-nome">${r.cliente||'—'}</div>
-        <div class="cli-cons">${r.consultor||''}</div>
+        <div class="cli-nome">${cl.cliente}</div>
+        <div class="cli-cons">${cl.consultor||''}</div>
         <div style="font-size:10px;color:var(--vermelho);font-weight:600;min-width:55px">${dias} dias</div>
-        <div class="cli-proximo">${r.proximo_passo||''}</div>
       </div>`;
     }).join('');
 
   // Ranking por ciclos fechados
-  const rank=dadosCtrl.map(r=>({
-    cliente:r.cliente||'—',
-    consultor:r.consultor||'—',
-    ciclos:ciclos.reduce((a,c)=>a+((r[c.k]||'').toUpperCase()==='FECHADO'?1:0),0),
-    datas:ciclos.map(c=>r[c.k+'_data']?new Date(r[c.k+'_data']).toLocaleDateString('pt-BR'):'-'),
-    status:ciclos.map(c=>r[c.k]||'-'),
+  const rank=clientes.map(cl=>({
+    cliente:cl.cliente,
+    consultor:cl.consultor||'—',
+    ciclos:CICLOS_DEF.reduce((a,c)=>a+(cl.cats[c.key]?1:0),0),
+    status:CICLOS_DEF.map(c=>cl.cats[c.key]?new Date(cl.cats[c.key]).toLocaleDateString('pt-BR'):'-'),
   })).sort((a,b)=>b.ciclos-a.ciclos).slice(0,20);
 
   document.getElementById('ciclo-ranking').innerHTML=rank.map(r=>`<tr>
     <td style="font-size:11px;font-weight:${r.ciclos>0?600:400}">${r.cliente}</td>
     <td style="font-size:10px;color:var(--cinza)">${r.consultor}</td>
-    ${r.status.map((s,i)=>`<td style="font-size:9px;font-weight:600;color:${s.toUpperCase()==='FECHADO'?'#16A34A':s.toUpperCase()==='ORCAMENTO'?'#D97706':s.toUpperCase()==='PERDIDO'?'#DC2626':'var(--cinza)'}">${r.datas[i]!=='-'?r.datas[i]:s}</td>`).join('')}
+    ${r.status.map(s=>`<td style="font-size:9px;font-weight:600;color:${s!=='-'?'#16A34A':'var(--cinza)'}">${s}</td>`).join('')}
     <td style="text-align:center"><span class="tag ${r.ciclos>=4?'g':r.ciclos>=2?'a':'r'}">${r.ciclos}/6</span></td>
-  </tr>`).join('')||'<tr><td colspan="9" class="empty">Sem dados de controle</td></tr>';
+  </tr>`).join('')||'<tr><td colspan="9" class="empty">Sem dados</td></tr>';
+}
+
+// ── CRM — funil de oportunidades ───────────────────────────────
+function renderCRM() {
+  const op=dadosOport;
+  const contatos=op.filter(r=>r.data_contato).length;
+  const qualificados=op.filter(r=>r.data_qualificado).length;
+  const orcamentos=op.filter(r=>r.data_orcamento).length;
+  const emAberto=op.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO').reduce((a,r)=>a+(parseFloat(r.valor_orcamento)||0),0);
+  const fechados=op.filter(r=>['FECHADO','FECHADO PARCIALMENTE'].includes((r.resultado||'').toUpperCase())).length;
+  const perdidos=op.filter(r=>(r.resultado||'').toUpperCase()==='PERDIDO').length;
+  const taxa=orcamentos>0?fechados/orcamentos:0;
+  const valorPerdidoTotal=op.reduce((a,r)=>a+(parseFloat(r.valor_perdido)||0),0);
+
+  document.getElementById('crm-kpi-contatos').textContent=contatos;
+  document.getElementById('crm-kpi-qualif').textContent=qualificados;
+  document.getElementById('crm-kpi-qualif-sub').textContent=contatos>0?pct(qualificados/contatos)+' dos contatos':'—';
+  document.getElementById('crm-kpi-orc').textContent=orcamentos;
+  document.getElementById('crm-kpi-orc-sub').textContent=qualificados>0?pct(orcamentos/qualificados)+' dos qualificados':'—';
+  document.getElementById('crm-kpi-aberto').textContent=brl(emAberto);
+  document.getElementById('crm-kpi-fechados').textContent=fechados;
+  document.getElementById('crm-kpi-taxa').textContent='Taxa conversão: '+pct(taxa);
+  document.getElementById('crm-kpi-perdidos').textContent=perdidos;
+  document.getElementById('crm-kpi-vlrperdido').textContent=brl(valorPerdidoTotal);
+
+  // Pipeline ativo
+  const pipeline=op.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO')
+    .sort((a,b)=>(parseFloat(b.valor_orcamento)||0)-(parseFloat(a.valor_orcamento)||0)).slice(0,20);
+  document.getElementById('crm-pipeline').innerHTML=pipeline.length===0?'<div class="empty">Nenhuma oportunidade em aberto</div>':
+    pipeline.map(r=>{
+      const st=(r.status||'').toUpperCase();
+      const tagCls=st==='QUENTE'?'g':st==='FRIO'?'r':'a';
+      return `<div class="cli-item">
+        <div class="cli-nome">${r.cliente||'—'}</div>
+        <div class="cli-cons">${r.consultor||''}</div>
+        <span class="tag ${tagCls}">${r.status||'-'}</span>
+        <div class="alerta-mc" style="color:var(--azul)">${brl(r.valor_orcamento)}</div>
+      </div>`;
+    }).join('');
+
+  // Perdas por motivo (total + parcial)
+  const perdasArr=op.filter(r=>['PERDIDO','FECHADO PARCIALMENTE'].includes((r.resultado||'').toUpperCase())&&(parseFloat(r.valor_perdido)||0)>0);
+  const agMotivo={};
+  perdasArr.forEach(r=>{
+    const m=r.motivo_perda||'(sem motivo)';
+    if(!agMotivo[m])agMotivo[m]={count:0,valor:0};
+    agMotivo[m].count++; agMotivo[m].valor+=parseFloat(r.valor_perdido)||0;
+  });
+  const motivoArr=Object.entries(agMotivo).map(([k,v])=>({nome:k,...v})).sort((a,b)=>b.valor-a.valor);
+  const maxV=Math.max(...motivoArr.map(m=>m.valor),1);
+  document.getElementById('crm-perdidos').innerHTML=motivoArr.length===0?'<div class="empty">Nenhuma perda registrada</div>':
+    motivoArr.map(m=>`<div class="receb-item">
+      <span style="flex:1;font-size:12px">${m.nome}</span>
+      <div style="flex:2;margin:0 8px"><div class="rank-bar-wrap"><div class="rank-bar" style="width:${(m.valor/maxV*100).toFixed(0)}%;background:#DC2626"></div></div></div>
+      <span class="receb-val" style="color:var(--vermelho)">${brl(m.valor)}</span>
+      <span class="receb-pct">${m.count}x</span>
+    </div>`).join('');
+}
+
+// ── CRM — radar de visitas a arquitetos ────────────────────────
+function calcRadarArquitetos() {
+  const freqMap={
+    OURO:paramsCRM.freq_visita_ouro_dias||30,
+    PRATA:paramsCRM.freq_visita_prata_dias||60,
+    BRONZE:paramsCRM.freq_visita_bronze_dias||90,
+  };
+  const hoje=new Date();
+  return dadosArquitetos.filter(a=>a.nome&&a.nome.toUpperCase()!=='SEM ARQUITETO').map(a=>{
+    let ultima=null;
+    dadosVisitas.filter(v=>v.arquiteto===a.nome&&v.data_visita).forEach(v=>{
+      const d=new Date(v.data_visita); if(!ultima||d>ultima) ultima=d;
+    });
+    const dias=ultima?Math.floor((hoje-ultima)/(1000*60*60*24)):null;
+    const freq=freqMap[(a.categoria||'').toUpperCase()]||null;
+    let status='SEM VISITA REGISTRADA';
+    if(ultima&&freq) status=dias>freq?'ATRASADO':'EM DIA';
+    return {...a,ultima,dias,freq,status};
+  });
+}
+function renderRadarArquitetos() {
+  const linhas=calcRadarArquitetos().sort((a,b)=>{
+    if(a.status==='ATRASADO'&&b.status!=='ATRASADO') return -1;
+    if(b.status==='ATRASADO'&&a.status!=='ATRASADO') return 1;
+    return (b.dias||-1)-(a.dias||-1);
+  });
+  document.getElementById('crm-radar-arq').innerHTML=linhas.length===0?'<div class="empty">Nenhum arquiteto cadastrado</div>':
+    `<table class="rank-table"><thead><tr><th>Arquiteto</th><th>Categoria</th><th>Última Visita</th><th>Status</th></tr></thead><tbody>`+
+    linhas.slice(0,15).map(l=>{
+      const catCls=l.categoria==='OURO'?'a':l.categoria==='PRATA'?'g':'r';
+      const stCls=l.status==='EM DIA'?'g':l.status==='ATRASADO'?'r':'a';
+      return `<tr>
+        <td style="font-size:12px">${l.nome}</td>
+        <td><span class="tag ${catCls}">${l.categoria||'-'}</span></td>
+        <td class="mono" style="font-size:11px">${l.ultima?l.ultima.toLocaleDateString('pt-BR')+' ('+l.dias+'d)':'—'}</td>
+        <td><span class="tag ${stCls}">${l.status}</span></td>
+      </tr>`;
+    }).join('')+`</tbody></table>`;
+  const atrasados=linhas.filter(l=>l.status==='ATRASADO').length;
+  const kAtr=document.getElementById('crm-kpi-atrasados'); if(kAtr) kAtr.textContent=atrasados;
+}
+
+// ── CRM — recompra por provável falta de material ──────────────
+function renderRecompra() {
+  const janela=paramsCRM.janela_recompra_dias||90;
+  const catMap=mapaMarcaCategoria();
+  const porClienteCat={};
+  dadosBrutos.forEach(r=>{
+    if(!r.cliente||(r.status||'').toUpperCase()==='DEVOLUCAO'||!r.data_venda) return;
+    const cat=catMap[String(r.marca||'').toUpperCase()];
+    if(!cat) return;
+    const k=r.cliente+'|'+cat;
+    if(!porClienteCat[k]) porClienteCat[k]=[];
+    porClienteCat[k].push(r.data_venda.substring(0,10));
+  });
+  const alertas=[];
+  Object.entries(porClienteCat).forEach(([k,datasRaw])=>{
+    const datas=[...new Set(datasRaw)].sort();
+    if(datas.length<2) return;
+    for(let i=1;i<datas.length;i++){
+      const diff=(new Date(datas[i])-new Date(datas[i-1]))/(1000*60*60*24);
+      if(diff<=janela){
+        const [cliente,categoria]=k.split('|');
+        alertas.push({cliente,categoria,dias:Math.round(diff),data:datas[i]});
+        break;
+      }
+    }
+  });
+  alertas.sort((a,b)=>a.dias-b.dias);
+  document.getElementById('crm-recompra').innerHTML=alertas.length===0?'<div class="empty">Nenhuma recompra suspeita no período</div>':
+    alertas.slice(0,15).map(a=>`<div class="cli-item">
+      <div class="cli-nome">${a.cliente}</div>
+      <span class="tag a">${a.categoria}</span>
+      <div class="alerta-mc" style="color:var(--amarelo)">${a.dias} dias</div>
+    </div>`).join('');
+}
+
+// ── ALERTAS CRM — oportunidade parada ───────────────────────────
+function renderAlertaParado() {
+  const diasAlerta=paramsCRM.dias_sem_atualizacao_alerta||30;
+  const hoje=new Date();
+  const parados=dadosOport.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO').map(r=>{
+    const datas=[r.data_contato,r.data_qualificado,r.data_orcamento].filter(Boolean).map(d=>new Date(d));
+    const ultima=datas.length?new Date(Math.max(...datas)):null;
+    const dias=ultima?Math.floor((hoje-ultima)/(1000*60*60*24)):null;
+    return {...r,dias};
+  }).filter(r=>r.dias!=null&&r.dias>diasAlerta).sort((a,b)=>b.dias-a.dias);
+  const el=document.getElementById('alertas-parado');
+  if(!el) return;
+  el.innerHTML=parados.length===0?'<div class="empty">✅ Nenhuma oportunidade parada</div>':
+    parados.slice(0,20).map(r=>`<div class="alerta-item">
+      <span style="flex:1;font-size:11px">${r.cliente||'—'} <span style="color:var(--cinza)">(${r.consultor||''})</span></span>
+      <span class="alerta-mc" style="color:var(--amarelo)">${r.dias} dias</span>
+    </div>`).join('');
+}
+
+// ── ALERTAS CRM — conflito perdido x venda real ─────────────────
+function renderAlertaConflito() {
+  const perdidos=dadosOport.filter(r=>(r.resultado||'').toUpperCase()==='PERDIDO'&&r.cliente);
+  const conflitos=[];
+  perdidos.forEach(op=>{
+    const dataRef=op.data_resultado?new Date(op.data_resultado):(op.data_orcamento?new Date(op.data_orcamento):null);
+    const vendaPost=dadosBrutos.find(v=>v.cliente===op.cliente&&(v.status||'').toUpperCase()!=='DEVOLUCAO'&&v.data_venda&&(!dataRef||new Date(v.data_venda)>=dataRef));
+    if(vendaPost) conflitos.push({cliente:op.cliente,dataRef,venda:vendaPost});
+  });
+  const el=document.getElementById('alertas-conflito');
+  if(!el) return;
+  el.innerHTML=conflitos.length===0?'<div class="empty">✅ Nenhum conflito encontrado</div>':
+    conflitos.slice(0,20).map(c=>`<div class="alerta-item">
+      <span style="flex:1;font-size:11px">${c.cliente} — marcado PERDIDO${c.dataRef?' em '+c.dataRef.toLocaleDateString('pt-BR'):''}, mas comprou em ${c.venda.data_venda?c.venda.data_venda.substring(0,10):'?'}</span>
+      <span class="alerta-mc" style="color:var(--vermelho)">Corrigir no CRM</span>
+    </div>`).join('');
 }
 
 // ── ALERTAS ───────────────────────────────────────────────────
@@ -1314,6 +1587,8 @@ window.addEventListener('DOMContentLoaded',()=>{
     try{const obj=JSON.parse(cache);
       dadosBrutos=(obj.dados||[]).filter(r=>r.num_pedido&&r.rec_bruta!=null);
       dadosMeta=obj.meta||{}; dadosCtrl=obj.ctrl||[];
+      dadosOport=obj.oport||[]; dadosVisitas=obj.visitas||[];
+      dadosMarcaCat=obj.marcacat||[]; dadosArquitetos=obj.arq||[]; paramsCRM=obj.params||{};
       atualizarTS(true); popularFiltros(); renderizar();
       document.getElementById('loading').style.display='none';
     }catch(e){}
