@@ -514,17 +514,19 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
 <!-- ═══ SEÇÃO CRM ═══ -->
 <div class="secao" id="sec-crm">
   <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
-    <div class="kpi azul"><div class="kpi-label">Contatos</div><div class="kpi-valor pos" id="crm-kpi-contatos">—</div><div class="kpi-sub">total no funil</div></div>
+    <div class="kpi azul"><div class="kpi-label">Contatos</div><div class="kpi-valor pos" id="crm-kpi-contatos">—</div><div class="kpi-sub">no período</div></div>
     <div class="kpi azul"><div class="kpi-label">Qualificados</div><div class="kpi-valor pos" id="crm-kpi-qualif">—</div><div class="kpi-sub" id="crm-kpi-qualif-sub">—</div></div>
     <div class="kpi azul"><div class="kpi-label">Orçamentos</div><div class="kpi-valor pos" id="crm-kpi-orc">—</div><div class="kpi-sub" id="crm-kpi-orc-sub">—</div></div>
-    <div class="kpi amarelo"><div class="kpi-label">Valor em Aberto</div><div class="kpi-valor" id="crm-kpi-aberto">—</div><div class="kpi-sub">em negociação</div></div>
+    <div class="kpi amarelo"><div class="kpi-label">Valor em Aberto</div><div class="kpi-valor" id="crm-kpi-aberto">—</div><div class="kpi-sub">hoje, em negociação</div></div>
   </div>
-  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:8px">
     <div class="kpi"><div class="kpi-label">Fechados (total + parcial)</div><div class="kpi-valor pos" id="crm-kpi-fechados">—</div><div class="kpi-sub" id="crm-kpi-taxa">—</div></div>
-    <div class="kpi vermelho"><div class="kpi-label">Perdidos (total)</div><div class="kpi-valor neg" id="crm-kpi-perdidos">—</div><div class="kpi-sub">negociações</div></div>
-    <div class="kpi vermelho"><div class="kpi-label">Valor Perdido Total</div><div class="kpi-valor neg" id="crm-kpi-vlrperdido">—</div><div class="kpi-sub">total + parcial</div></div>
-    <div class="kpi laranja"><div class="kpi-label">Arquitetos Atrasados</div><div class="kpi-valor" id="crm-kpi-atrasados">—</div><div class="kpi-sub">visita fora do prazo</div></div>
+    <div class="kpi vermelho"><div class="kpi-label">Perdidos (total)</div><div class="kpi-valor neg" id="crm-kpi-perdidos">—</div><div class="kpi-sub">no período</div></div>
+    <div class="kpi vermelho"><div class="kpi-label">Valor Perdido Total</div><div class="kpi-valor neg" id="crm-kpi-vlrperdido">—</div><div class="kpi-sub">no período</div></div>
+    <div class="kpi laranja"><div class="kpi-label">Arquitetos Atrasados</div><div class="kpi-valor" id="crm-kpi-atrasados">—</div><div class="kpi-sub">hoje, visita fora do prazo</div></div>
   </div>
+
+  <div style="margin:12px 0 12px;font-size:12px;font-weight:800;color:var(--azul);text-transform:uppercase;letter-spacing:.8px;border-bottom:2px solid var(--azul);padding-bottom:6px">🎯 Ação Comercial — o que fazer agora</div>
 
   <div class="grid2">
     <div class="card">
@@ -532,8 +534,8 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
       <div class="card-body" id="crm-pipeline"></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-titulo">❌ Perdas por Motivo (total + parcial)</span></div>
-      <div class="card-body" id="crm-perdidos"></div>
+      <div class="card-header"><span class="card-titulo">⏰ Oportunidades Paradas</span></div>
+      <div class="card-body" id="alertas-parado"></div>
     </div>
   </div>
 
@@ -543,24 +545,80 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
       <div class="card-body" id="crm-radar-arq"></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-titulo">🔁 Provável Falta de Material (recompra)</span></div>
-      <div class="card-body" id="crm-recompra"></div>
+      <div class="card-header"><span class="card-titulo">🎯 Prospecção do Vendedor (OPOR.)</span></div>
+      <div class="card-body" id="crm-prospec-vendedor"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-titulo">💡 Sugestão do Sistema — RC sem categoria complementar</span></div>
+    <div class="card-body" id="crm-prospec-sistema"></div>
+  </div>
+
+  <div style="margin:28px 0 12px;font-size:12px;font-weight:800;color:var(--roxo);text-transform:uppercase;letter-spacing:.8px;border-bottom:2px solid var(--roxo);padding-bottom:6px">📊 Análises e Indicadores — diagnóstico do período</div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">🔻 Funil do Período</span></div>
+      <div class="card-body" id="crm-funil-periodo"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">⏱ Tempo Médio por Etapa</span></div>
+      <div class="card-body" id="crm-tempo-etapa"></div>
     </div>
   </div>
 
   <div class="grid2">
     <div class="card">
-      <div class="card-header"><span class="card-titulo">🎯 Prospecção do Vendedor (OPOR.)</span></div>
-      <div class="card-body" id="crm-prospec-vendedor"></div>
+      <div class="card-header"><span class="card-titulo">⚖ Valor Ponderado do Pipeline (hoje)</span></div>
+      <div class="card-body" id="crm-valor-ponderado"></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-titulo">💡 Sugestão do Sistema — RC sem categoria complementar</span></div>
-      <div class="card-body" id="crm-prospec-sistema"></div>
+      <div class="card-header"><span class="card-titulo">📅 Idade do Pipeline Aberto (hoje)</span></div>
+      <div class="card-body" id="crm-idade-pipeline"></div>
     </div>
   </div>
+
   <div class="card">
-    <div class="card-header"><span class="card-titulo">📈 Conversão de Prospecção por Segmento</span></div>
-    <div class="card-body" id="crm-prospec-conversao"></div>
+    <div class="card-header"><span class="card-titulo">📊 Orçado × Realizado por Mês</span></div>
+    <div class="card-body"><div class="chart-wrap"><canvas id="chart-orcado-realizado"></canvas></div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">🏅 Conversão por Consultor</span></div>
+      <div class="card-body" id="crm-rank-consultor"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">🌐 Conversão por Origem</span></div>
+      <div class="card-body" id="crm-conv-origem"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-titulo">🏛 Qualidade de Indicação por Arquiteto (histórico)</span></div>
+    <div class="card-body" id="crm-qualidade-arq"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">❌ Perdas por Motivo (total + parcial)</span></div>
+      <div class="card-body" id="crm-perdidos"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">📈 Conversão de Prospecção por Segmento (histórico)</span></div>
+      <div class="card-body" id="crm-prospec-conversao"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">🔁 Provável Falta de Material (recompra)</span></div>
+      <div class="card-body" id="crm-recompra"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">⚠ Conflito: Perdido x Venda Real</span></div>
+      <div class="card-body" id="alertas-conflito"></div>
+    </div>
   </div>
 </div>
 
@@ -600,16 +658,7 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
       <div class="card-body" id="alertas-dev"></div>
     </div>
   </div>
-  <div class="grid2">
-    <div class="card">
-      <div class="card-header"><span class="card-titulo">⏰ Oportunidades Paradas</span></div>
-      <div class="card-body" id="alertas-parado"></div>
-    </div>
-    <div class="card">
-      <div class="card-header"><span class="card-titulo">⚠ Conflito: Perdido x Venda Real</span></div>
-      <div class="card-body" id="alertas-conflito"></div>
-    </div>
-  </div>
+  <div class="empty" style="padding:10px 0">Alertas comerciais (oportunidades paradas, conflitos) foram pra aba CRM — Ação Comercial.</div>
 </div>
 
 <script>
@@ -802,6 +851,16 @@ function filtrar() {
     return true;
   });
 }
+// Filtra OPORTUNIDADES pelo mesmo período do topo, usando Data Contato como âncora (visão de coorte)
+function filtrarOport() {
+  const ini=document.getElementById('f-data-ini').value, fim=document.getElementById('f-data-fim').value;
+  return dadosOport.filter(r=>{
+    if(!r.data_contato) return false;
+    if(ini&&r.data_contato<ini) return false;
+    if(fim&&r.data_contato>fim) return false;
+    return true;
+  });
+}
 function limparFiltros() {
   ['vendedor','arquiteto','marca','cliente'].forEach(c=>{multiSel[c]=[];atualizarLblMulti(c);document.querySelectorAll(`#dd-${c} input`).forEach(cb=>cb.checked=false);});
   ['f-status','f-produto','f-pedido'].forEach(id=>document.getElementById(id).value='');
@@ -896,12 +955,22 @@ function renderizar() {
   renderArgamassa(m2RC,sacArg,metaArg,argPct,dados);
   renderCiclos();
   renderAlertas(dados);
-  renderCRM();
+  renderCRMKpis();
+  renderPipeline();
+  renderPerdasMotivo();
   renderRadarArquitetos();
   renderRecompra();
   renderProspeccaoVendedor();
   renderProspeccaoSistema();
   renderProspeccaoConversao();
+  renderFunilPeriodo();
+  renderTempoEtapa();
+  renderValorPonderado();
+  renderIdadePipeline();
+  renderOrcadoRealizado();
+  renderRankConsultorCRM();
+  renderConversaoOrigem();
+  renderQualidadeArquiteto();
   renderAlertaParado();
   renderAlertaConflito();
 }
@@ -1405,16 +1474,18 @@ function renderCiclos() {
 }
 
 // ── CRM — funil de oportunidades ───────────────────────────────
-function renderCRM() {
-  const op=dadosOport;
-  const contatos=op.filter(r=>r.data_contato).length;
+// KPIs do funil — respeitam o filtro de período (Data Contato), corrigindo o bug de contar tudo sempre
+function renderCRMKpis() {
+  const op=filtrarOport();
+  const contatos=op.length;
   const qualificados=op.filter(r=>r.data_qualificado).length;
   const orcamentos=op.filter(r=>r.data_orcamento).length;
-  const emAberto=op.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO').reduce((a,r)=>a+(parseFloat(r.valor_orcamento)||0),0);
   const fechados=op.filter(r=>['FECHADO','FECHADO PARCIALMENTE'].includes((r.resultado||'').toUpperCase())).length;
   const perdidos=op.filter(r=>(r.resultado||'').toUpperCase()==='PERDIDO').length;
   const taxa=orcamentos>0?fechados/orcamentos:0;
   const valorPerdidoTotal=op.reduce((a,r)=>a+(parseFloat(r.valor_perdido)||0),0);
+  // Valor em aberto e atrasados são estado atual (hoje), não fazem sentido presos ao período
+  const emAberto=dadosOport.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO').reduce((a,r)=>a+(parseFloat(r.valor_orcamento)||0),0);
 
   document.getElementById('crm-kpi-contatos').textContent=contatos;
   document.getElementById('crm-kpi-qualif').textContent=qualificados;
@@ -1426,11 +1497,14 @@ function renderCRM() {
   document.getElementById('crm-kpi-taxa').textContent='Taxa conversão: '+pct(taxa);
   document.getElementById('crm-kpi-perdidos').textContent=perdidos;
   document.getElementById('crm-kpi-vlrperdido').textContent=brl(valorPerdidoTotal);
-
-  // Pipeline ativo
-  const pipeline=op.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO')
+}
+// Pipeline ativo — estado atual (o que tem pra trabalhar hoje), não é filtrado por período
+function renderPipeline() {
+  const pipeline=dadosOport.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO')
     .sort((a,b)=>(parseFloat(b.valor_orcamento)||0)-(parseFloat(a.valor_orcamento)||0)).slice(0,20);
-  document.getElementById('crm-pipeline').innerHTML=pipeline.length===0?'<div class="empty">Nenhuma oportunidade em aberto</div>':
+  const el=document.getElementById('crm-pipeline');
+  if(!el) return;
+  el.innerHTML=pipeline.length===0?'<div class="empty">Nenhuma oportunidade em aberto</div>':
     pipeline.map(r=>{
       const st=(r.status||'').toUpperCase();
       const tagCls=st==='QUENTE'?'g':st==='FRIO'?'r':'a';
@@ -1441,8 +1515,10 @@ function renderCRM() {
         <div class="alerta-mc" style="color:var(--azul)">${brl(r.valor_orcamento)}</div>
       </div>`;
     }).join('');
-
-  // Perdas por motivo (total + parcial)
+}
+// Perdas por motivo — respeita o período (Data Contato)
+function renderPerdasMotivo() {
+  const op=filtrarOport();
   const perdasArr=op.filter(r=>['PERDIDO','FECHADO PARCIALMENTE'].includes((r.resultado||'').toUpperCase())&&(parseFloat(r.valor_perdido)||0)>0);
   const agMotivo={};
   perdasArr.forEach(r=>{
@@ -1452,13 +1528,209 @@ function renderCRM() {
   });
   const motivoArr=Object.entries(agMotivo).map(([k,v])=>({nome:k,...v})).sort((a,b)=>b.valor-a.valor);
   const maxV=Math.max(...motivoArr.map(m=>m.valor),1);
-  document.getElementById('crm-perdidos').innerHTML=motivoArr.length===0?'<div class="empty">Nenhuma perda registrada</div>':
+  const el=document.getElementById('crm-perdidos');
+  if(!el) return;
+  el.innerHTML=motivoArr.length===0?'<div class="empty">Nenhuma perda registrada no período</div>':
     motivoArr.map(m=>`<div class="receb-item">
       <span style="flex:1;font-size:12px">${m.nome}</span>
       <div style="flex:2;margin:0 8px"><div class="rank-bar-wrap"><div class="rank-bar" style="width:${(m.valor/maxV*100).toFixed(0)}%;background:#DC2626"></div></div></div>
       <span class="receb-val" style="color:var(--vermelho)">${brl(m.valor)}</span>
       <span class="receb-pct">${m.count}x</span>
     </div>`).join('');
+}
+// Funil visual do período, com % de conversão entre etapas
+function renderFunilPeriodo() {
+  const op=filtrarOport();
+  const contatos=op.length;
+  const qualificados=op.filter(r=>r.data_qualificado).length;
+  const orcamentos=op.filter(r=>r.data_orcamento).length;
+  const fechados=op.filter(r=>['FECHADO','FECHADO PARCIALMENTE'].includes((r.resultado||'').toUpperCase())).length;
+  const etapas=[
+    {nome:'Contato',v:contatos,cor:'#1E40AF'},
+    {nome:'Qualificado',v:qualificados,cor:'#60A5FA'},
+    {nome:'Orçamento',v:orcamentos,cor:'#7C3AED'},
+    {nome:'Fechado',v:fechados,cor:'#16A34A'},
+  ];
+  const max=Math.max(etapas[0].v,1);
+  const el=document.getElementById('crm-funil-periodo');
+  if(!el) return;
+  el.innerHTML = etapas.map((e,i)=>{
+    const pctW = e.v>0 ? Math.max((e.v/max*100),4) : 0;
+    const convPrev = i>0 && etapas[i-1].v>0 ? ' · '+pct(e.v/etapas[i-1].v)+' da etapa anterior' : '';
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+        <span style="font-weight:600">${e.nome}</span>
+        <span class="mono">${e.v}${convPrev}</span>
+      </div>
+      <div class="barra-wrap" style="height:18px"><div class="barra-fill" style="width:${pctW}%;background:${e.cor}"></div></div>
+    </div>`;
+  }).join('');
+}
+// Tempo médio entre etapas do funil, no período
+function renderTempoEtapa() {
+  const op=filtrarOport();
+  const d1=[],d2=[],d3=[];
+  op.forEach(r=>{
+    const dc=r.data_contato?new Date(r.data_contato):null;
+    const dq=r.data_qualificado?new Date(r.data_qualificado):null;
+    const doo=r.data_orcamento?new Date(r.data_orcamento):null;
+    const dr=r.data_resultado?new Date(r.data_resultado):null;
+    const res=(r.resultado||'').toUpperCase();
+    if(dc&&dq) d1.push((dq-dc)/86400000);
+    if(dq&&doo) d2.push((doo-dq)/86400000);
+    if(doo&&dr&&['FECHADO','FECHADO PARCIALMENTE'].includes(res)) d3.push((dr-doo)/86400000);
+  });
+  const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+  const linhas=[
+    {l:'Contato → Qualificado',v:avg(d1)},
+    {l:'Qualificado → Orçamento',v:avg(d2)},
+    {l:'Orçamento → Fechamento',v:avg(d3)},
+  ];
+  const el=document.getElementById('crm-tempo-etapa');
+  if(!el) return;
+  el.innerHTML = linhas.map(x=>`<div class="prazo-item">
+    <span style="flex:1;font-size:12px">${x.l}</span>
+    <span class="prazo-dias">${x.v!=null?x.v+' dias':'sem dados'}</span>
+  </div>`).join('');
+}
+// Valor do pipeline aberto ponderado por chance de fechar (por Status)
+const PESO_STATUS = {QUENTE:0.7,'EM NEGOCIACAO':0.4,FRIO:0.15,'AGUARDANDO PROJETO':0.1};
+function renderValorPonderado() {
+  const abertos=dadosOport.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO');
+  let bruto=0,ponderado=0;
+  const porStatus={};
+  abertos.forEach(r=>{
+    const v=parseFloat(r.valor_orcamento)||0;
+    bruto+=v;
+    const st=(r.status||'').toUpperCase();
+    const peso = PESO_STATUS[st] ?? 0.3;
+    ponderado+=v*peso;
+    const chave=r.status||'(sem status)';
+    if(!porStatus[chave]) porStatus[chave]={v:0,peso};
+    porStatus[chave].v+=v;
+  });
+  const el=document.getElementById('crm-valor-ponderado');
+  if(!el) return;
+  const linhasStatus=Object.entries(porStatus).sort((a,b)=>b[1].v-a[1].v)
+    .map(([k,v])=>`<div class="prazo-item"><span style="flex:1;font-size:11px">${k} <span style="color:var(--cinza);font-size:9px">(peso ${(v.peso*100).toFixed(0)}%)</span></span><span class="mono" style="font-size:11px">${brl(v.v)}</span></div>`).join('');
+  el.innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:10px">
+      <div style="flex:1;text-align:center;padding:10px;background:var(--cinza-cla);border-radius:8px">
+        <div style="font-size:9px;color:var(--cinza);font-weight:700;text-transform:uppercase">Valor Bruto</div>
+        <div class="mono" style="font-size:16px;font-weight:600">${brl(bruto)}</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:10px;background:var(--azul-cla);border-radius:8px">
+        <div style="font-size:9px;color:var(--azul);font-weight:700;text-transform:uppercase">Ponderado</div>
+        <div class="mono" style="font-size:16px;font-weight:600;color:var(--azul)">${brl(ponderado)}</div>
+      </div>
+    </div>
+    ${linhasStatus||'<div class="empty">Nenhuma oportunidade em aberto</div>'}`;
+}
+// Distribuição de idade das oportunidades abertas hoje
+function renderIdadePipeline() {
+  const hoje=new Date();
+  const abertos=dadosOport.filter(r=>(r.resultado||'').toUpperCase()==='EM ANDAMENTO'&&r.data_contato);
+  const buckets=[{l:'0–15 dias',min:0,max:15,n:0},{l:'15–30 dias',min:15,max:30,n:0},{l:'30–60 dias',min:30,max:60,n:0},{l:'60+ dias',min:60,max:Infinity,n:0}];
+  abertos.forEach(r=>{
+    const dias=(hoje-new Date(r.data_contato))/86400000;
+    const b=buckets.find(b=>dias>=b.min&&dias<b.max);
+    if(b) b.n++;
+  });
+  const max=Math.max(...buckets.map(b=>b.n),1);
+  const el=document.getElementById('crm-idade-pipeline');
+  if(!el) return;
+  el.innerHTML = buckets.map(b=>`<div style="margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>${b.l}</span><span class="mono">${b.n}</span></div>
+    <div class="barra-wrap" style="height:14px"><div class="barra-fill ${b.min>=60?'vermelho':''}" style="width:${(b.n/max*100).toFixed(0)}%"></div></div>
+  </div>`).join('');
+}
+// Orçado × Realizado por mês (últimos 6 meses com dado)
+function renderOrcadoRealizado() {
+  const porMes={};
+  dadosOport.forEach(r=>{
+    if(!r.data_orcamento) return;
+    const mes=r.data_orcamento.substring(0,7);
+    if(!porMes[mes]) porMes[mes]={orc:0,real:0};
+    porMes[mes].orc+=parseFloat(r.valor_orcamento)||0;
+    const res=(r.resultado||'').toUpperCase();
+    if(res==='FECHADO'||res==='FECHADO PARCIALMENTE') porMes[mes].real+=parseFloat(r.valor_fechado)||0;
+  });
+  const meses=Object.keys(porMes).sort().slice(-6);
+  const labels=meses.map(m=>{const[y,mo]=m.split('-');return mo+'/'+y.substring(2);});
+  const cv=document.getElementById('chart-orcado-realizado');
+  if(!cv) return;
+  if(charts.orcReal) charts.orcReal.destroy();
+  charts.orcReal=new Chart(cv.getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Orçado',data:meses.map(m=>porMes[m].orc),backgroundColor:'#93C5FD',borderRadius:4},
+      {label:'Realizado',data:meses.map(m=>porMes[m].real),backgroundColor:'#1E40AF',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{font:{size:9},callback:v=>'R$'+(v/1000).toFixed(0)+'k'},grid:{color:'#F3F4F6'}}}}
+  });
+}
+// Conversão orçamento→fechado por consultor, no período
+function renderRankConsultorCRM() {
+  const op=filtrarOport();
+  const ag={};
+  op.forEach(r=>{
+    const k=r.consultor||'(sem consultor)';
+    if(!ag[k]) ag[k]={orcamentos:0,fechados:0};
+    if(r.data_orcamento) ag[k].orcamentos++;
+    if(['FECHADO','FECHADO PARCIALMENTE'].includes((r.resultado||'').toUpperCase())) ag[k].fechados++;
+  });
+  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,taxa:v.orcamentos>0?v.fechados/v.orcamentos:0}))
+    .filter(x=>x.orcamentos>0).sort((a,b)=>b.taxa-a.taxa);
+  const el=document.getElementById('crm-rank-consultor');
+  if(!el) return;
+  el.innerHTML = arr.length===0?'<div class="empty">Sem orçamentos no período</div>':
+    `<table class="rank-table"><thead><tr><th>Consultor</th><th>Orçamentos</th><th>Fechados</th><th>Taxa</th></tr></thead><tbody>`+
+    arr.map(a=>`<tr><td style="font-size:12px">${a.nome}</td><td class="mono">${a.orcamentos}</td><td class="mono">${a.fechados}</td>
+    <td><span class="tag ${a.taxa>=.5?'g':a.taxa>=.25?'a':'r'}">${pct(a.taxa)}</span></td></tr>`).join('')+`</tbody></table>`;
+}
+// Conversão orçamento→fechado por origem, no período
+function renderConversaoOrigem() {
+  const op=filtrarOport();
+  const ag={};
+  op.forEach(r=>{
+    const k=r.origem||'(sem origem)';
+    if(!ag[k]) ag[k]={orcamentos:0,fechados:0};
+    if(r.data_orcamento) ag[k].orcamentos++;
+    if(['FECHADO','FECHADO PARCIALMENTE'].includes((r.resultado||'').toUpperCase())) ag[k].fechados++;
+  });
+  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,taxa:v.orcamentos>0?v.fechados/v.orcamentos:0}))
+    .filter(x=>x.orcamentos>0).sort((a,b)=>b.taxa-a.taxa);
+  const el=document.getElementById('crm-conv-origem');
+  if(!el) return;
+  el.innerHTML = arr.length===0?'<div class="empty">Sem orçamentos no período</div>':
+    arr.map(a=>`<div class="receb-item">
+      <span style="flex:1;font-size:12px">${a.nome}</span>
+      <div style="flex:2;margin:0 8px"><div class="rank-bar-wrap"><div class="rank-bar" style="width:${(a.taxa*100).toFixed(0)}%"></div></div></div>
+      <span class="receb-val">${pct(a.taxa)}</span>
+      <span class="receb-pct">${a.fechados}/${a.orcamentos}</span>
+    </div>`).join('');
+}
+// Quais arquitetos realmente geram venda fechada (histórico completo, não só frequência de visita)
+function renderQualidadeArquiteto() {
+  const ag={};
+  dadosOport.forEach(r=>{
+    const arq=(r.arquiteto||'').trim();
+    if(!arq||arq.toUpperCase()==='SEM ARQUITETO') return;
+    if(!ag[arq]) ag[arq]={total:0,fechados:0,valor:0};
+    ag[arq].total++;
+    if(['FECHADO','FECHADO PARCIALMENTE'].includes((r.resultado||'').toUpperCase())){
+      ag[arq].fechados++;
+      ag[arq].valor+=parseFloat(r.valor_fechado)||0;
+    }
+  });
+  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,taxa:v.total>0?v.fechados/v.total:0})).sort((a,b)=>b.valor-a.valor);
+  const el=document.getElementById('crm-qualidade-arq');
+  if(!el) return;
+  el.innerHTML = arr.length===0?'<div class="empty">Sem oportunidades vinculadas a arquiteto</div>':
+    `<table class="rank-table"><thead><tr><th>Arquiteto</th><th>Oportunidades</th><th>Fechadas</th><th>Taxa</th><th>Valor Gerado</th></tr></thead><tbody>`+
+    arr.slice(0,15).map(a=>`<tr><td style="font-size:12px">${a.nome}</td><td class="mono">${a.total}</td><td class="mono">${a.fechados}</td>
+    <td><span class="tag ${a.taxa>=.5?'g':a.taxa>=.25?'a':'r'}">${pct(a.taxa)}</span></td><td class="mono">${brl(a.valor)}</td></tr>`).join('')+`</tbody></table>`;
 }
 
 // ── CRM — radar de visitas a arquitetos ────────────────────────
