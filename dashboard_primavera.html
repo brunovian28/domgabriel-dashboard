@@ -435,7 +435,7 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
     <div class="card-header"><span class="card-titulo">Top 15 Produtos</span></div>
     <div class="card-body" style="overflow-x:auto">
       <table class="rank-table">
-        <thead><tr><th>Produto</th><th>Venda Loja</th><th>Faturamento</th><th>Qtde</th><th>MC R$</th><th>MC%</th></tr></thead>
+        <thead><tr><th>Produto</th><th>Venda Loja</th><th>Faturamento</th><th>Qtde</th><th>Pedidos</th><th>MC R$</th><th>MC%</th></tr></thead>
         <tbody id="rank-prod"></tbody>
       </table>
     </div>
@@ -896,7 +896,7 @@ function renderizar() {
     return (r.status||'').toUpperCase() === 'DEVOLUCAO' ? a - q : a + q;
   }, 0);
   const sacArg = dados.reduce((a,r) => {
-    if (!['PORTOKOLL','SIKA'].includes((r.marca||'').toUpperCase())) return a;
+    if (!['PORTOKOLL','SIKA','CERAMFIX'].includes((r.marca||'').toUpperCase())) return a;
     const q = parseFloat(r.qtde) || 0;
     return (r.status||'').toUpperCase() === 'DEVOLUCAO' ? a - q : a + q;
   }, 0);
@@ -1192,7 +1192,7 @@ function renderProdutos(dados) {
   const ag={};
   dados.forEach(r=>{
     const k=r.descricao||'(s/desc)';
-    if(!ag[k])ag[k]={fat:0,mc:0,vl:0,qtd:0};
+    if(!ag[k])ag[k]={fat:0,mc:0,vl:0,qtd:0,peds:new Set()};
     ag[k].fat+=parseFloat(r.rec_bruta)||0;
     ag[k].mc+=parseFloat(r.mc_rs)||0;
     ag[k].qtd+=parseFloat(r.qtde)||0;
@@ -1202,15 +1202,17 @@ function renderProdutos(dados) {
     if(stp==='REVENDA'||stp==='ESTOQUE') ag[k].vl+=rbp;
     else if(stp==='VENDA DIRETA') ag[k].vl+=vdp;
     else if(stp==='DEVOLUCAO') ag[k].vl+=rbp;
+    if(r.num_pedido)ag[k].peds.add(r.num_pedido);
   });
   const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0})).sort((a,b)=>b.vl-a.vl).slice(0,15);
   document.getElementById('rank-prod').innerHTML=arr.map((r,i)=>`<tr>
     <td style="font-size:11px;font-weight:${i<3?600:400};max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.nome}</td>
     <td class="mono">${brl(r.vl)}</td><td class="mono">${brl(r.fat)}</td>
     <td class="mono">${r.qtd.toFixed(2)}</td>
+    <td class="mono">${r.peds.size}</td>
     <td class="mono ${r.mc<0?'dre-neg':''}">${brl(r.mc)}</td>
     <td><span class="tag ${r.pct>=.15?'g':r.pct>=0?'a':'r'}">${pct(r.pct)}</span></td></tr>`
-  ).join('')||'<tr><td colspan="6" class="empty">Sem dados</td></tr>';
+  ).join('')||'<tr><td colspan="7" class="empty">Sem dados</td></tr>';
 }
 
 // ── ARGAMASSA ─────────────────────────────────────────────────
