@@ -547,6 +547,21 @@ select,input[type=date]{border:1px solid var(--borda);border-radius:7px;padding:
       <div class="card-body" id="crm-recompra"></div>
     </div>
   </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">🎯 Prospecção do Vendedor (OPOR.)</span></div>
+      <div class="card-body" id="crm-prospec-vendedor"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-titulo">💡 Sugestão do Sistema — RC sem categoria complementar</span></div>
+      <div class="card-body" id="crm-prospec-sistema"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-titulo">📈 Conversão de Prospecção por Segmento</span></div>
+    <div class="card-body" id="crm-prospec-conversao"></div>
+  </div>
 </div>
 
 <!-- ═══ SEÇÃO CICLOS ═══ -->
@@ -884,6 +899,9 @@ function renderizar() {
   renderCRM();
   renderRadarArquitetos();
   renderRecompra();
+  renderProspeccaoVendedor();
+  renderProspeccaoSistema();
+  renderProspeccaoConversao();
   renderAlertaParado();
   renderAlertaConflito();
 }
@@ -1517,6 +1535,84 @@ function renderRecompra() {
       <div class="cli-nome">${a.cliente}</div>
       <span class="tag a">${a.categoria}</span>
       <div class="alerta-mc" style="color:var(--amarelo)">${a.dias} dias</div>
+    </div>`).join('');
+}
+
+// ── PROSPECÇÃO DE VENDA CRUZADA ──────────────────────────────────
+const CAT_LABEL = {
+  cat_rc:'RC', cat_argamassa:'Argamassa', cat_loucas_metais:'Louças e Metais',
+  cat_eletro:'Eletro', cat_jacuzzi:'Jacuzzi', cat_castelato:'Castelato'
+};
+const isOpor = v => (v||'').toString().toUpperCase().trim().startsWith('OPOR');
+const isSim  = v => (v||'').toString().toUpperCase().trim()==='SIM';
+const isProspecOrigem = o => {
+  const u=(o||'').toUpperCase();
+  return u.includes('PROSPEC') || u.includes('CROSS SELL') || u.includes('CROSSSELL');
+};
+// Parte 1 — o que o vendedor mesmo identificou e marcou como OPOR.
+function renderProspeccaoVendedor() {
+  const linhas = dadosOport.filter(r=>{
+    if((r.resultado||'').toUpperCase()==='PERDIDO') return false;
+    return Object.keys(CAT_LABEL).some(k=>isOpor(r[k]));
+  });
+  const el = document.getElementById('crm-prospec-vendedor');
+  if(!el) return;
+  el.innerHTML = linhas.length===0 ? '<div class="empty">Nenhuma prospecção em aberto</div>' :
+    linhas.slice(0,20).map(r=>{
+      const cats = Object.keys(CAT_LABEL).filter(k=>isOpor(r[k])).map(k=>CAT_LABEL[k]);
+      return `<div class="cli-item">
+        <div class="cli-nome">${r.cliente||'—'}</div>
+        <div class="cli-cons">${r.consultor||''}</div>
+        <div style="font-size:10px;color:var(--roxo);font-weight:600">${cats.join(', ')}</div>
+        <span class="tag a">${r.origem||'-'}</span>
+      </div>`;
+    }).join('');
+}
+// Parte 2 — sugestão automática: comprou RC, ainda não comprou Argamassa/Louças, dentro da janela
+function renderProspeccaoSistema() {
+  const janela = paramsCRM.janela_oportunidade_cross_sell_dias || 150;
+  const hoje = new Date();
+  const sugestoes = clientesPorCiclo().filter(cl=>cl.cats['RC']).map(cl=>{
+    const diasRC = Math.floor((hoje-new Date(cl.cats['RC']))/(1000*60*60*24));
+    const faltando=[];
+    if(!cl.cats['ARGAMASSA']) faltando.push('Argamassa');
+    if(!cl.cats['LOUCAS E METAIS']) faltando.push('Louças e Metais');
+    return {...cl,diasRC,faltando};
+  }).filter(cl=>cl.faltando.length>0 && cl.diasRC<=janela)
+    .sort((a,b)=>a.diasRC-b.diasRC);
+  const el = document.getElementById('crm-prospec-sistema');
+  if(!el) return;
+  el.innerHTML = sugestoes.length===0 ? '<div class="empty">Nenhuma sugestão no momento</div>' :
+    sugestoes.slice(0,20).map(cl=>`<div class="cli-item">
+      <div class="cli-nome">${cl.cliente}</div>
+      <div class="cli-cons">${cl.consultor||''}</div>
+      <div style="font-size:10px;color:var(--amarelo);font-weight:600">${cl.faltando.join(', ')}</div>
+      <div class="alerta-mc" style="color:var(--cinza)">RC há ${cl.diasRC}d</div>
+    </div>`).join('');
+}
+// Taxa de conversão por segmento, olhando só linhas de prospecção (Prospecção Ativa / Oport. Cross Sell)
+function renderProspeccaoConversao() {
+  const linhas = dadosOport.filter(r=>isProspecOrigem(r.origem));
+  const ag={};
+  linhas.forEach(r=>{
+    Object.keys(CAT_LABEL).forEach(k=>{
+      if(!isSim(r[k]) && !isOpor(r[k])) return;
+      const label=CAT_LABEL[k];
+      if(!ag[label]) ag[label]={total:0,fechado:0};
+      ag[label].total++;
+      const res=(r.resultado||'').toUpperCase();
+      if(res==='FECHADO'||res==='FECHADO PARCIALMENTE') ag[label].fechado++;
+    });
+  });
+  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,taxa:v.total>0?v.fechado/v.total:0})).sort((a,b)=>b.total-a.total);
+  const el = document.getElementById('crm-prospec-conversao');
+  if(!el) return;
+  el.innerHTML = arr.length===0 ? '<div class="empty">Sem dados de prospecção ainda (marque a Origem como Prospecção Ativa ou Oport. Cross Sell)</div>' :
+    arr.map(a=>`<div class="receb-item">
+      <span style="flex:1;font-size:12px">${a.nome}</span>
+      <div style="flex:2;margin:0 8px"><div class="rank-bar-wrap"><div class="rank-bar" style="width:${(a.taxa*100).toFixed(0)}%"></div></div></div>
+      <span class="receb-val">${pct(a.taxa)}</span>
+      <span class="receb-pct">${a.fechado}/${a.total}</span>
     </div>`).join('');
 }
 
