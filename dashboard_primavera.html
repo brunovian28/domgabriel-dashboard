@@ -1137,7 +1137,7 @@ function renderRankArquitetos(dados) {
   const ag={};
   dados.forEach(r=>{
     const k=r.arquiteto||'SEM ARQUITETO';
-    if(!ag[k])ag[k]={fat:0,mc:0,vl:0};
+    if(!ag[k])ag[k]={fat:0,mc:0,vl:0,peds:new Set()};
     ag[k].fat+=parseFloat(r.rec_bruta)||0;
     ag[k].mc+=parseFloat(r.mc_rs)||0;
     const stp=(r.status||'').toUpperCase();
@@ -1146,15 +1146,21 @@ function renderRankArquitetos(dados) {
     if(stp==='REVENDA'||stp==='ESTOQUE') ag[k].vl+=rbp;
     else if(stp==='VENDA DIRETA') ag[k].vl+=vdp;
     else if(stp==='DEVOLUCAO') ag[k].vl+=rbp;
+    if(r.num_pedido)ag[k].peds.add(r.num_pedido);
   });
-  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0})).sort((a,b)=>b.vl-a.vl).slice(0,15);
+  const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0,ticket:v.peds.size>0?v.vl/v.peds.size:0})).sort((a,b)=>b.vl-a.vl).slice(0,15);
   const maxVL=Math.max(...arr.map(r=>r.vl),1);
   document.getElementById('rank-arq').innerHTML=arr.map((r,i)=>`<tr><td>
     <div style="font-weight:${i<3?700:400};font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">${r.nome}</div>
     <div class="rank-bar-wrap"><div class="rank-bar" style="width:${(r.vl/maxVL*100).toFixed(0)}%"></div></div>
-    </td><td class="mono">${brl(r.vl)}</td><td class="mono ${r.mc<0?'dre-neg':''}">${brl(r.mc)}</td>
+    </td>
+    <td class="mono">${brl(r.vl)}</td>
+    <td class="mono">${brl(r.fat)}</td>
+    <td class="mono">${r.peds.size}</td>
+    <td class="mono">${brl(r.ticket)}</td>
+    <td class="mono ${r.mc<0?'dre-neg':''}">${brl(r.mc)}</td>
     <td><span class="tag ${r.pct>=.15?'g':r.pct>=0?'a':'r'}">${pct(r.pct)}</span></td></tr>`
-  ).join('')||'<tr><td colspan="4" class="empty">Sem dados</td></tr>';
+  ).join('')||'<tr><td colspan="7" class="empty">Sem dados</td></tr>';
 }
 
 function renderMarcas(dados) {
