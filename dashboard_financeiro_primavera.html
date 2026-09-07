@@ -282,6 +282,22 @@
 </head>
 <body>
 
+<div id="dg-login-gate" style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e293b);display:flex;align-items:center;justify-content:center;z-index:5000;font-family:'Inter',sans-serif">
+  <form id="dg-login-form" onsubmit="return fazerLogin(event)" style="background:#fff;border-radius:14px;padding:32px 28px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:20px;letter-spacing:2px;color:#1E40AF">DG</div>
+      <div style="font-size:12px;color:#6B7280;margin-top:4px">Dom Gabriel — Acesso Restrito</div>
+    </div>
+    <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase">E-mail</label>
+    <input id="dg-login-email" type="email" autocomplete="username" required style="width:100%;margin:4px 0 12px;padding:9px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;box-sizing:border-box">
+    <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase">Senha</label>
+    <input id="dg-login-senha" type="password" autocomplete="current-password" required style="width:100%;margin:4px 0 14px;padding:9px 10px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;box-sizing:border-box">
+    <button type="submit" id="dg-login-btn" style="width:100%;padding:10px;border:none;border-radius:8px;background:#1E40AF;color:#fff;font-weight:600;font-size:13px;cursor:pointer">Entrar</button>
+    <div id="dg-login-erro" style="display:none;color:#DC2626;font-size:12px;margin-top:10px;text-align:center"></div>
+  </form>
+</div>
+
+
 <!-- ── HEADER ─────────────────────────────────────────────── -->
 <div class="header">
   <div class="header-left">
@@ -439,6 +455,81 @@
 ══════════════════════════════════════════════════════════ */
 const SUPABASE_URL = 'https://ksniedeilzwngtsjnvev.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_GdQoxmwNgw54ctCXwP4Ikg_Z1puV2Xy';
+
+
+/* ── AUTENTICAÇÃO (Supabase Auth) ───────────────────────────
+   Antes: qualquer pessoa com a URL do dashboard via a chave
+   pública do Supabase e podia bater direto na API REST.
+   Agora: só carrega dados depois de um login válido, e o token
+   de sessão (não a chave anônima) é usado nas chamadas — o que
+   só funciona se as tabelas tiverem RLS restringindo SELECT a
+   "authenticated" (ver script SQL). ────────────────────────── */
+const DG_AUTH_KEY = 'dg_auth_token_v1';
+
+function getAuthToken() {
+  try {
+    const raw = sessionStorage.getItem(DG_AUTH_KEY);
+    if (!raw) return SUPABASE_KEY;
+    const obj = JSON.parse(raw);
+    if (obj.exp && Date.now() > obj.exp) { sessionStorage.removeItem(DG_AUTH_KEY); return SUPABASE_KEY; }
+    return obj.token || SUPABASE_KEY;
+  } catch (e) { return SUPABASE_KEY; }
+}
+
+function estaLogado() {
+  try {
+    const raw = sessionStorage.getItem(DG_AUTH_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    return !!(obj.token && obj.exp && Date.now() < obj.exp);
+  } catch (e) { return false; }
+}
+
+async function fazerLogin(ev) {
+  ev.preventDefault();
+  const email = document.getElementById('dg-login-email').value.trim();
+  const senha = document.getElementById('dg-login-senha').value;
+  const erroEl = document.getElementById('dg-login-erro');
+  const btn = document.getElementById('dg-login-btn');
+  erroEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: senha })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.access_token) throw new Error(data.error_description || data.msg || 'E-mail ou senha inválidos');
+    sessionStorage.setItem(DG_AUTH_KEY, JSON.stringify({
+      token: data.access_token,
+      exp: Date.now() + ((data.expires_in || 3600) * 1000)
+    }));
+    document.getElementById('dg-login-gate').style.display = 'none';
+    iniciarApp();
+  } catch (e) {
+    erroEl.textContent = 'Erro ao entrar: ' + e.message;
+    erroEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+  return false;
+}
+
+function sessaoExpirada() {
+  sessionStorage.removeItem(DG_AUTH_KEY);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dg-login-gate').style.display = 'flex';
+}
+
+function iniciarApp() {
+  if (estaLogado()) {
+    document.getElementById('dg-login-gate').style.display = 'none';
+    carregarTudo();
+  } else {
+    document.getElementById('dg-login-gate').style.display = 'flex';
+  }
+}
 const TABELA      = 'fluxo_primavera';
 const SALDO_ATUAL = 174818.84; // atualizar manualmente ou via Supabase
 
@@ -465,7 +556,7 @@ async function fetchSupabase(params = '') {
   const r = await fetch(url, {
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`
+      'Authorization': `Bearer ${getAuthToken()}`
     }
   });
   if (!r.ok) throw new Error(`Supabase: ${r.status}`);
@@ -492,6 +583,7 @@ async function carregarTudo() {
     renderEmprestimos();
     renderContas();
   } catch(e) {
+    if (/40[13]/.test(String(e && e.message))) { sessaoExpirada(); return; }
     document.getElementById('sync-status').textContent = 'Erro ao carregar';
     console.error(e);
   }
@@ -1153,7 +1245,7 @@ function setTab(nome) {
 /* ══════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════ */
-carregarTudo();
+iniciarApp();
 </script>
 </body>
 </html>
