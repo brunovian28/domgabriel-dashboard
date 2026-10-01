@@ -656,6 +656,17 @@ const brl = v => v==null||isNaN(v) ? 'R$ —' : new Intl.NumberFormat('pt-BR',{s
 const pct = v => v==null||isNaN(v) ? '—' : (v*100).toFixed(1)+'%';
 const parseBRL = s => parseFloat(String(s||0).replace(/\./g,'').replace(',','.')) || 0;
 const sum = (arr,campo) => arr.reduce((a,r)=>a+(parseFloat(r[campo])||0),0);
+// Status normalizado: maiúsculo, sem acento (DEVOLUÇÃO -> DEVOLUCAO)
+const normSt = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+// Valor da linha na "Venda da Loja": Revenda/Estoque = receita; VD = valor total da VD;
+// Devolução = valor total da VD se for devolução de VD, senão a receita (já negativos)
+const vlLinha = r => {
+  const st=normSt(r.status), rb=parseFloat(r.rec_bruta)||0, vd=parseFloat(r.vd_vlr_total_venda)||0;
+  if(st==='REVENDA'||st==='ESTOQUE') return rb;
+  if(st==='VENDA DIRETA') return vd;
+  if(st==='DEVOLUCAO') return vd!==0 ? vd : rb;
+  return 0;
+};
 const sumSt = (arr,campo,st) => arr.filter(r=>(r.status||'').toUpperCase()===st).reduce((a,r)=>a+(parseFloat(r[campo])||0),0);
 
 // ── TABS ─────────────────────────────────────────────────────
@@ -721,7 +732,7 @@ async function carregarDados() {
       if(pg.length<1000) break;
       from+=1000;
     }
-    dadosBrutos = todos.filter(r=>r.num_pedido&&r.rec_bruta!=null);
+    dadosBrutos = todos.filter(r=>r.num_pedido&&r.rec_bruta!=null).map(r=>({...r,status:normSt(r.status)}));
 
     // Metas — mês atual
     const mesAtual = new Date().toISOString().substring(0,7);
@@ -744,7 +755,7 @@ async function carregarDados() {
     const cache = localStorage.getItem(SK);
     if(cache) {
       const obj = JSON.parse(cache);
-      dadosBrutos = (obj.dados||[]).filter(r=>r.num_pedido&&r.rec_bruta!=null);
+      dadosBrutos = (obj.dados||[]).filter(r=>r.num_pedido&&r.rec_bruta!=null).map(r=>({...r,status:normSt(r.status)}));
       dadosMeta   = obj.meta||{};
       dadosCtrl   = obj.ctrl||[];
       atualizarTS(true); popularFiltros(); renderizar();
@@ -824,7 +835,7 @@ function renderizar() {
   const fatDev = sumSt(dados,'rec_bruta','DEVOLUCAO');
   const vdTot  = sum(dados,'vd_vlr_total_venda');
   // Venda da Loja = Revenda + Estoque + VD Total - Devolução (fatDev já é negativo)
-  const vendaLoja = fatRev + fatEst + vdTot + fatDev;
+  const vendaLoja = dados.reduce((a,r)=>a+vlLinha(r),0);
   const ticketMedio = peds>0 ? vendaLoja/peds : 0;
 
   // RC × Argamassa — somando QTDE real e descontando devoluções
@@ -903,7 +914,7 @@ function renderDRE(fat,trib,cmv,dv,mc,fatRev,fatEst,fatVD,fatDev) {
   const dfOpe=parseBRL(localStorage.getItem('dg_rv_df_ope')||'0');
   const vdTot=sum(filtrar(),'vd_vlr_total_venda');
   const fatDevDRE=sumSt(filtrar(),'rec_bruta','DEVOLUCAO');
-  const vendaLoja=sumSt(filtrar(),'rec_bruta','REVENDA')+sumSt(filtrar(),'rec_bruta','ESTOQUE')+vdTot+fatDevDRE;
+  const vendaLoja=filtrar().reduce((a,r)=>a+vlLinha(r),0);
 
   const rows=[
     {l:'VENDA DA LOJA',v:vendaLoja,cls:'dre-sec',p:fat?vendaLoja/fat:0,bold:true,color:'var(--azul)'},
@@ -1026,7 +1037,7 @@ function renderRankVendedores(dados,totalVendaLoja,totalPeds) {
     const vd=parseFloat(r.vd_vlr_total_venda)||0;
     if(st==='REVENDA'||st==='ESTOQUE') ag[k].vl+=rb;
     else if(st==='VENDA DIRETA') ag[k].vl+=vd;
-    else if(st==='DEVOLUCAO') ag[k].vl+=rb; // já negativo
+    else if(st==='DEVOLUCAO') ag[k].vl+=(vd!==0?vd:rb); // já negativo; devolução de VD pelo valor total
     if(r.num_pedido)ag[k].peds.add(r.num_pedido);
   });
   const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0,ticket:v.peds.size>0?v.vl/v.peds.size:0})).sort((a,b)=>b.vl-a.vl);
@@ -1065,7 +1076,7 @@ function renderRankArquitetos(dados) {
     const vdp=parseFloat(r.vd_vlr_total_venda)||0;
     if(stp==='REVENDA'||stp==='ESTOQUE') ag[k].vl+=rbp;
     else if(stp==='VENDA DIRETA') ag[k].vl+=vdp;
-    else if(stp==='DEVOLUCAO') ag[k].vl+=rbp;
+    else if(stp==='DEVOLUCAO') ag[k].vl+=(vdp!==0?vdp:rbp);
   });
   const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0})).sort((a,b)=>b.vl-a.vl).slice(0,15);
   const maxVL=Math.max(...arr.map(r=>r.vl),1);
@@ -1091,7 +1102,7 @@ function renderMarcas(dados) {
     const vdm=parseFloat(r.vd_vlr_total_venda)||0;
     if(stm==='REVENDA'||stm==='ESTOQUE') ag[k].vl+=rbm;
     else if(stm==='VENDA DIRETA') ag[k].vl+=vdm;
-    else if(stm==='DEVOLUCAO') ag[k].vl+=rbm;
+    else if(stm==='DEVOLUCAO') ag[k].vl+=(vdm!==0?vdm:rbm);
     if(r.num_pedido)ag[k].peds.add(r.num_pedido);
   });
   const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0,ticket:v.peds.size>0?v.vl/v.peds.size:0})).sort((a,b)=>b.vl-a.vl);
@@ -1121,7 +1132,7 @@ function renderProdutos(dados) {
     const vdp=parseFloat(r.vd_vlr_total_venda)||0;
     if(stp==='REVENDA'||stp==='ESTOQUE') ag[k].vl+=rbp;
     else if(stp==='VENDA DIRETA') ag[k].vl+=vdp;
-    else if(stp==='DEVOLUCAO') ag[k].vl+=rbp;
+    else if(stp==='DEVOLUCAO') ag[k].vl+=(vdp!==0?vdp:rbp);
   });
   const arr=Object.entries(ag).map(([k,v])=>({nome:k,...v,pct:v.fat>0?v.mc/v.fat:0})).sort((a,b)=>b.vl-a.vl).slice(0,15);
   document.getElementById('rank-prod').innerHTML=arr.map((r,i)=>`<tr>
@@ -1272,7 +1283,7 @@ function renderMetas(fat,mc,vendaLoja,ticket) {
   document.getElementById('meta-vendedores-grid').innerHTML=vendMetas.map(vm=>{
     const meta=dadosMeta[vm.key]||0;
     const real=dados.filter(r=>(r.vendedor||'').toUpperCase()===vm.nome)
-      .reduce((a,r)=>{const st=(r.status||'').toUpperCase();return a+(st==='REVENDA'||st==='ESTOQUE'?(parseFloat(r.rec_bruta)||0):0)+(parseFloat(r.vd_vlr_total_venda)||0);},0);
+      .reduce((a,r)=>a+vlLinha(r),0);
     const p=meta>0?Math.min(real/meta,1.5):0;
     const cor=real>=meta?'#22C55E':real/meta>=.7?'#FBBF24':'#EF4444';
     return `<div class="meta-card">
@@ -1405,7 +1416,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const cache=localStorage.getItem(SK);
   if(cache){
     try{const obj=JSON.parse(cache);
-      dadosBrutos=(obj.dados||[]).filter(r=>r.num_pedido&&r.rec_bruta!=null);
+      dadosBrutos=(obj.dados||[]).filter(r=>r.num_pedido&&r.rec_bruta!=null).map(r=>({...r,status:normSt(r.status)}));
       dadosMeta=obj.meta||{}; dadosCtrl=obj.ctrl||[];
       atualizarTS(true); popularFiltros(); renderizar();
       document.getElementById('loading').style.display='none';
